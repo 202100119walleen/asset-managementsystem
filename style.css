@@ -1,0 +1,118 @@
+/* Store Asset Management System Custom Styles */
+
+/* Radial background gradient for login screen */
+.bg-radial-gradient {
+  background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 100%);
+}
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Modal animation */
+#assetModal > div,
+#historyModal > div {
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Toast entrance animation */
+.toast-item {
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Active tab styling */
+.status-tab-btn.active {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+/* Status Badge Styles */
+.badge-good {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.badge-maintenance {
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.badge-oos {
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+
+/* Table Hover Effect */
+#assetTableBody tr {
+  transition: background-color 0.15s ease;
+}
+
+#assetTableBody tr:hover {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+
+/* Timeline dot styling */
+.timeline-dot {
+  position: absolute;
+  left: -21px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #0f172a;
+  border: 2px solid #6366f1;
+}
+
+.timeline-dot.good {
+  border-color: #10b981;
+}
+
+.timeline-dot.maint {
+  border-color: #f59e0b;
+}
+
+.timeline-dot.oos {
+  border-color: #f43f5e;
+}

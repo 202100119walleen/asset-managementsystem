@@ -1,0 +1,1188 @@
+/**
+ * Store Asset Management System - Core JavaScript Application Logic
+ */
+
+// ==========================================
+// 1. DEFAULT SEED DATA & INITIALIZATION
+// ==========================================
+
+const DEFAULT_STORES = [
+  { code: 'STORE-01', name: 'Downtown Branch Store', password: 'pass123' },
+  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' },
+  { code: 'HQ-MAIN', name: 'Corporate Headquarters', password: 'admin123' }
+];
+
+const SEED_ASSETS_STORE_01 = [
+  {
+    id: 'AST-1001',
+    name: 'Daikin Inverter Split Aircon 2.5HP',
+    category: 'HVAC / Aircon',
+    serial: 'AC-88392-DK',
+    location: 'Main Sales Floor',
+    status: 'Good',
+    lastMaintenance: '2026-06-15',
+    purchaseDate: '2023-04-10',
+    value: 1450.00,
+    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-06-15T10:00:00.000Z'
+  },
+  {
+    id: 'AST-1002',
+    name: 'NCR Voyix Touchscreen POS Terminal',
+    category: 'POS & Cashier',
+    serial: 'POS-77401-NC',
+    location: 'Counter 01',
+    status: 'Maintenance Needed',
+    lastMaintenance: '2025-11-20',
+    purchaseDate: '2022-09-01',
+    value: 2100.00,
+    imageUrl: 'https://images.unsplash.com/photo-1556742049-0a670fc8078a?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-07-02T14:30:00.000Z'
+  },
+  {
+    id: 'AST-1003',
+    name: 'Dell Latitude 5540 Manager Laptop',
+    category: 'Laptops & IT',
+    serial: 'DL-99381-LT',
+    location: 'Manager Office',
+    status: 'Good',
+    lastMaintenance: '2026-05-10',
+    purchaseDate: '2024-01-15',
+    value: 1250.00,
+    imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-05-10T09:15:00.000Z'
+  },
+  {
+    id: 'AST-1004',
+    name: 'Commercial Double-Door Display Freezer',
+    category: 'Refrigeration',
+    serial: 'RF-44210-FZ',
+    location: 'Beverage Aisle 3',
+    status: 'Good',
+    lastMaintenance: '2026-07-01',
+    purchaseDate: '2021-08-20',
+    value: 3800.00,
+    imageUrl: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-07-01T11:20:00.000Z'
+  },
+  {
+    id: 'AST-1005',
+    name: 'Ford Transit Store Delivery Van',
+    category: 'Vehicles',
+    serial: 'VIN-99201-VAN',
+    location: 'Back Parking Bay',
+    status: 'Out of Service',
+    lastMaintenance: '2026-04-05',
+    purchaseDate: '2020-03-12',
+    value: 28500.00,
+    imageUrl: 'https://images.unsplash.com/photo-1559297434-fae8a1916a79?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-07-18T16:00:00.000Z'
+  }
+];
+
+const SEED_LOGS_STORE_01 = [
+  {
+    id: 'LOG-5001',
+    assetId: 'AST-1001',
+    date: '2026-06-15',
+    technician: 'CoolTech HVAC Solutions',
+    statusBefore: 'Maintenance Needed',
+    statusAfter: 'Good',
+    cost: 180.00,
+    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
+    notes: 'Replaced air filters, cleaned condenser coils, and refilled R-410A refrigerant. Unit cooling efficiently now.'
+  },
+  {
+    id: 'LOG-5002',
+    assetId: 'AST-1002',
+    date: '2026-07-02',
+    technician: 'In-House IT Support',
+    statusBefore: 'Good',
+    statusAfter: 'Maintenance Needed',
+    cost: 45.00,
+    imageUrl: '',
+    notes: 'Thermal receipt printer paper feeder jamming intermittently. Receipt cutter replacement part ordered.'
+  },
+  {
+    id: 'LOG-5003',
+    assetId: 'AST-1005',
+    date: '2026-07-18',
+    technician: 'Metro Auto Service Center',
+    statusBefore: 'Good',
+    statusAfter: 'Out of Service',
+    cost: 850.00,
+    imageUrl: '',
+    notes: 'Transmission fluid leak diagnosed. Vehicle towed to mechanic workshop awaiting gearbox clutch replacement.'
+  }
+];
+
+const SEED_ASSETS_STORE_02 = [
+  {
+    id: 'AST-2001',
+    name: 'La Marzocco Commercial Espresso Machine',
+    category: 'Kitchen Equipment',
+    serial: 'LM-3031-ESP',
+    location: 'Café Corner',
+    status: 'Good',
+    lastMaintenance: '2026-07-12',
+    purchaseDate: '2023-02-14',
+    value: 6200.00,
+    imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-07-12T08:00:00.000Z'
+  },
+  {
+    id: 'AST-2002',
+    name: 'Apple iPad Pro 12.9 POS Register',
+    category: 'POS & Cashier',
+    serial: 'IPD-88210-AP',
+    location: 'Register 2',
+    status: 'Good',
+    lastMaintenance: '2026-05-30',
+    purchaseDate: '2023-11-10',
+    value: 1199.00,
+    imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
+    updatedAt: '2026-05-30T13:00:00.000Z'
+  }
+];
+
+const SEED_LOGS_STORE_02 = [
+  {
+    id: 'LOG-6001',
+    assetId: 'AST-2001',
+    date: '2026-07-12',
+    technician: 'Barista Tech Services',
+    statusBefore: 'Maintenance Needed',
+    statusAfter: 'Good',
+    cost: 240.00,
+    imageUrl: '',
+    notes: 'Descaled group heads, replaced group gaskets, and recalibrated pump pressure to 9 bars.'
+  }
+];
+
+// ==========================================
+// 2. LOCALSTORAGE CONTROLLER LAYER
+// ==========================================
+
+class StorageManager {
+  static initStorage() {
+    if (!localStorage.getItem('ams_stores')) {
+      localStorage.setItem('ams_stores', JSON.stringify(DEFAULT_STORES));
+    }
+    // Seed Store 01 if missing
+    if (!localStorage.getItem('ams_assets_STORE-01')) {
+      localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
+      localStorage.setItem('ams_logs_STORE-01', JSON.stringify(SEED_LOGS_STORE_01));
+    }
+    // Seed Store 02 if missing
+    if (!localStorage.getItem('ams_assets_STORE-02')) {
+      localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
+      localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
+    }
+    // Seed HQ if missing
+    if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
+      localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
+      localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
+    }
+  }
+
+  static getStores() {
+    try {
+      return JSON.parse(localStorage.getItem('ams_stores')) || DEFAULT_STORES;
+    } catch {
+      return DEFAULT_STORES;
+    }
+  }
+
+  static saveStores(stores) {
+    localStorage.setItem('ams_stores', JSON.stringify(stores));
+  }
+
+  static addStore(code, name, password, seedOption = 'empty') {
+    const stores = StorageManager.getStores();
+    const cleanCode = code.trim().toUpperCase();
+
+    if (stores.some(s => s.code === cleanCode)) {
+      return { success: false, message: `Store code "${cleanCode}" already exists.` };
+    }
+
+    const newStore = { code: cleanCode, name: name.trim(), password: password.trim() };
+    stores.push(newStore);
+    StorageManager.saveStores(stores);
+
+    if (seedOption === 'seed') {
+      localStorage.setItem(`ams_assets_${cleanCode}`, JSON.stringify(SEED_ASSETS_STORE_01));
+      localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify(SEED_LOGS_STORE_01));
+    } else {
+      localStorage.setItem(`ams_assets_${cleanCode}`, JSON.stringify([]));
+      localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify([]));
+    }
+
+    return { success: true, store: newStore };
+  }
+
+  static getActiveStoreCode() {
+    return localStorage.getItem('ams_active_store');
+  }
+
+  static setActiveStoreCode(storeCode) {
+    if (storeCode) {
+      localStorage.setItem('ams_active_store', storeCode);
+    } else {
+      localStorage.removeItem('ams_active_store');
+    }
+  }
+
+  static getAssets(storeCode) {
+    if (!storeCode) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`ams_assets_${storeCode}`)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  static saveAssets(storeCode, assets) {
+    if (!storeCode) return;
+    localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
+  }
+
+  static getLogs(storeCode) {
+    if (!storeCode) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`ams_logs_${storeCode}`)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  static saveLogs(storeCode, logs) {
+    if (!storeCode) return;
+    localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
+  }
+
+  static resetStoreData(storeCode) {
+    if (storeCode === 'STORE-01') {
+      localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
+      localStorage.setItem('ams_logs_STORE-01', JSON.stringify(SEED_LOGS_STORE_01));
+    } else if (storeCode === 'STORE-02') {
+      localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
+      localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
+    } else {
+      localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify([]));
+      localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify([]));
+    }
+  }
+}
+
+// Initialize default storage on script load
+StorageManager.initStorage();
+
+
+// ==========================================
+// 3. MAIN APPLICATION STATE & CONTROLLER
+// ==========================================
+
+const AppState = {
+  activeStore: null,
+  assets: [],
+  logs: [],
+  currentView: 'table', // 'table' | 'card'
+  searchQuery: '',
+  statusFilter: 'ALL',
+  categoryFilter: 'ALL'
+};
+
+// Global DOM Selectors
+const DOM = {
+  // Views
+  loginSection: document.getElementById('loginSection'),
+  appSection: document.getElementById('appSection'),
+  
+  // Auth Form & Store List
+  loginForm: document.getElementById('loginForm'),
+  loginStoreCode: document.getElementById('loginStoreCode'),
+  loginPassword: document.getElementById('loginPassword'),
+  loginError: document.getElementById('loginError'),
+  loginErrorText: document.getElementById('loginErrorText'),
+  storeListContainer: document.getElementById('storeListContainer'),
+  openCreateStoreBtnLogin: document.getElementById('openCreateStoreBtnLogin'),
+  openCreateStoreBtnHeader: document.getElementById('openCreateStoreBtnHeader'),
+
+  // Store Registration Modal
+  storeModal: document.getElementById('storeModal'),
+  storeForm: document.getElementById('storeForm'),
+  newStoreCode: document.getElementById('newStoreCode'),
+  newStoreName: document.getElementById('newStoreName'),
+  newStorePassword: document.getElementById('newStorePassword'),
+  newStoreSeedOption: document.getElementById('newStoreSeedOption'),
+  storeFormError: document.getElementById('storeFormError'),
+  storeFormErrorText: document.getElementById('storeFormErrorText'),
+  closeStoreModalBtn: document.getElementById('closeStoreModalBtn'),
+  cancelStoreModalBtn: document.getElementById('cancelStoreModalBtn'),
+  
+  // Header Elements
+  activeStoreCodeDisplay: document.getElementById('activeStoreCodeDisplay'),
+  activeStoreNameDisplay: document.getElementById('activeStoreNameDisplay'),
+  dropdownStoreCode: document.getElementById('dropdownStoreCode'),
+  userMenuBtn: document.getElementById('userMenuBtn'),
+  userMenuDropdown: document.getElementById('userMenuDropdown'),
+  switchStoreBtn: document.getElementById('switchStoreBtn'),
+  resetStoreDataBtn: document.getElementById('resetStoreDataBtn'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  openAddAssetBtn: document.getElementById('openAddAssetBtn'),
+
+  // Dashboard Stats
+  statTotalCount: document.getElementById('statTotalCount'),
+  statTotalValue: document.getElementById('statTotalValue'),
+  statGoodCount: document.getElementById('statGoodCount'),
+  statGoodPct: document.getElementById('statGoodPct'),
+  statGoodBar: document.getElementById('statGoodBar'),
+  statMaintCount: document.getElementById('statMaintCount'),
+  statMaintBar: document.getElementById('statMaintBar'),
+  statOosCount: document.getElementById('statOosCount'),
+  statOosBar: document.getElementById('statOosBar'),
+
+  // Controls & Filters
+  searchInput: document.getElementById('searchInput'),
+  categoryFilter: document.getElementById('categoryFilter'),
+  viewTableViewBtn: document.getElementById('viewTableViewBtn'),
+  viewCardViewBtn: document.getElementById('viewCardViewBtn'),
+  statusTabBtns: document.querySelectorAll('.status-tab-btn'),
+  countTabAll: document.getElementById('countTabAll'),
+  countTabGood: document.getElementById('countTabGood'),
+  countTabMaint: document.getElementById('countTabMaint'),
+  countTabOos: document.getElementById('countTabOos'),
+
+  // Containers
+  tableViewContainer: document.getElementById('tableViewContainer'),
+  cardViewContainer: document.getElementById('cardViewContainer'),
+  assetTableBody: document.getElementById('assetTableBody'),
+  emptyState: document.getElementById('emptyState'),
+  emptyAddBtn: document.getElementById('emptyAddBtn'),
+
+  // Asset Modal
+  assetModal: document.getElementById('assetModal'),
+  assetModalTitle: document.getElementById('assetModalTitle'),
+  assetForm: document.getElementById('assetForm'),
+  assetFormId: document.getElementById('assetFormId'),
+  assetFormName: document.getElementById('assetFormName'),
+  assetFormCategory: document.getElementById('assetFormCategory'),
+  assetFormSerial: document.getElementById('assetFormSerial'),
+  assetFormStatus: document.getElementById('assetFormStatus'),
+  assetFormLocation: document.getElementById('assetFormLocation'),
+  assetFormLastMaint: document.getElementById('assetFormLastMaint'),
+  assetFormValue: document.getElementById('assetFormValue'),
+  assetFormFileInput: document.getElementById('assetFormFileInput'),
+  assetFileLabel: document.getElementById('assetFileLabel'),
+  assetFormImage: document.getElementById('assetFormImage'),
+  assetFormPreviewBox: document.getElementById('assetFormPreviewBox'),
+  closeAssetModalBtn: document.getElementById('closeAssetModalBtn'),
+  cancelAssetModalBtn: document.getElementById('cancelAssetModalBtn'),
+
+  // Maintenance History Modal
+  historyModal: document.getElementById('historyModal'),
+  historyModalAssetName: document.getElementById('historyModalAssetName'),
+  historyModalAssetStatus: document.getElementById('historyModalAssetStatus'),
+  historyModalAssetMeta: document.getElementById('historyModalAssetMeta'),
+  closeHistoryModalBtn: document.getElementById('closeHistoryModalBtn'),
+  toggleNewLogFormBtn: document.getElementById('toggleNewLogFormBtn'),
+  newLogForm: document.getElementById('newLogForm'),
+  logFormAssetId: document.getElementById('logFormAssetId'),
+  logFormDate: document.getElementById('logFormDate'),
+  logFormTechnician: document.getElementById('logFormTechnician'),
+  logFormNewStatus: document.getElementById('logFormNewStatus'),
+  logFormCost: document.getElementById('logFormCost'),
+  logFormFileInput: document.getElementById('logFormFileInput'),
+  logFileLabel: document.getElementById('logFileLabel'),
+  logFormImage: document.getElementById('logFormImage'),
+  logFormPreviewBox: document.getElementById('logFormPreviewBox'),
+  logFormNotes: document.getElementById('logFormNotes'),
+  cancelLogFormBtn: document.getElementById('cancelLogFormBtn'),
+  timelineContainer: document.getElementById('timelineContainer'),
+  emptyTimeline: document.getElementById('emptyTimeline'),
+
+  // Toast Container
+  toastContainer: document.getElementById('toastContainer')
+};
+
+
+// ==========================================
+// 4. AUTHENTICATION & STORE MANAGEMENT LOGIC
+// ==========================================
+
+function renderStoreAccountsList() {
+  const stores = StorageManager.getStores();
+
+  DOM.storeListContainer.innerHTML = stores.map(s => `
+    <button type="button" class="demo-login-btn p-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}" data-pass="${escapeHTML(s.password)}">
+      <span class="flex items-center gap-2">
+        <i class="fa-solid fa-store text-indigo-400"></i>
+        <strong class="text-white font-mono">${escapeHTML(s.code)}</strong> 
+        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[140px]">(${escapeHTML(s.name)})</span>
+      </span>
+      <span class="text-[10px] text-slate-500 font-mono">pass: ${escapeHTML(s.password)}</span>
+    </button>
+  `).join('');
+
+  // Re-attach quick login click handlers
+  DOM.storeListContainer.querySelectorAll('.demo-login-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.getAttribute('data-code');
+      const pass = btn.getAttribute('data-pass');
+      DOM.loginStoreCode.value = code;
+      DOM.loginPassword.value = pass;
+      handleLogin(code, pass);
+    });
+  });
+}
+
+function openCreateStoreModal() {
+  DOM.storeForm.reset();
+  DOM.storeFormError.classList.add('hidden');
+  DOM.userMenuDropdown.classList.add('hidden');
+  DOM.storeModal.classList.remove('hidden');
+}
+
+function closeCreateStoreModal() {
+  DOM.storeModal.classList.add('hidden');
+}
+
+function handleStoreFormSubmit(e) {
+  e.preventDefault();
+
+  const code = DOM.newStoreCode.value;
+  const name = DOM.newStoreName.value;
+  const pass = DOM.newStorePassword.value;
+  const seedOption = DOM.newStoreSeedOption.value;
+
+  const result = StorageManager.addStore(code, name, pass, seedOption);
+
+  if (!result.success) {
+    DOM.storeFormErrorText.textContent = result.message;
+    DOM.storeFormError.classList.remove('hidden');
+    return;
+  }
+
+  DOM.storeFormError.classList.add('hidden');
+  closeCreateStoreModal();
+  renderStoreAccountsList();
+
+  showToast(`Store account "${result.store.code}" created successfully!`, 'success');
+}
+
+function handleLogin(storeCode, password) {
+  const stores = StorageManager.getStores();
+  const matchedStore = stores.find(s => s.code.toUpperCase() === storeCode.trim().toUpperCase() && s.password === password);
+
+  if (matchedStore) {
+    AppState.activeStore = matchedStore;
+    StorageManager.setActiveStoreCode(matchedStore.code);
+    DOM.loginError.classList.add('hidden');
+    loadStoreSession();
+    showToast(`Logged in successfully as ${matchedStore.code}`, 'success');
+  } else {
+    DOM.loginError.classList.remove('hidden');
+    DOM.loginErrorText.textContent = 'Invalid Store Code or Password.';
+  }
+}
+
+function handleLogout() {
+  AppState.activeStore = null;
+  StorageManager.setActiveStoreCode(null);
+  DOM.appSection.classList.add('hidden');
+  DOM.appSection.classList.remove('flex');
+  DOM.loginSection.classList.remove('hidden');
+  DOM.userMenuDropdown.classList.add('hidden');
+  renderStoreAccountsList();
+  showToast('Logged out of store session.', 'info');
+}
+
+function loadStoreSession() {
+  const activeCode = StorageManager.getActiveStoreCode();
+  if (!activeCode) {
+    DOM.loginSection.classList.remove('hidden');
+    DOM.appSection.classList.add('hidden');
+    DOM.appSection.classList.remove('flex');
+    renderStoreAccountsList();
+    return;
+  }
+
+  const stores = StorageManager.getStores();
+  let storeObj = stores.find(s => s.code === activeCode);
+  if (!storeObj) {
+    storeObj = { code: activeCode, name: `${activeCode} Branch`, password: '123' };
+  }
+
+  AppState.activeStore = storeObj;
+  AppState.assets = StorageManager.getAssets(activeCode);
+  AppState.logs = StorageManager.getLogs(activeCode);
+
+  // Update Header UI
+  DOM.activeStoreCodeDisplay.textContent = storeObj.code;
+  DOM.activeStoreNameDisplay.textContent = storeObj.name;
+  DOM.dropdownStoreCode.textContent = storeObj.code;
+
+  // Show Workspace View
+  DOM.loginSection.classList.add('hidden');
+  DOM.appSection.classList.remove('hidden');
+  DOM.appSection.classList.add('flex');
+
+  // Render Core UI components
+  refreshAppUI();
+}
+
+
+// ==========================================
+// 5. RENDERING ENGINE & COMPUTATIONS
+// ==========================================
+
+function refreshAppUI() {
+  renderDashboardStats();
+  renderAssetDirectory();
+}
+
+function renderDashboardStats() {
+  const assets = AppState.assets;
+  const totalCount = assets.length;
+  
+  const goodAssets = assets.filter(a => a.status === 'Good');
+  const maintAssets = assets.filter(a => a.status === 'Maintenance Needed');
+  const oosAssets = assets.filter(a => a.status === 'Out of Service');
+
+  const totalValue = assets.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
+
+  DOM.statTotalCount.textContent = totalCount;
+  DOM.statTotalValue.textContent = `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Total`;
+
+  DOM.statGoodCount.textContent = goodAssets.length;
+  const goodPct = totalCount > 0 ? Math.round((goodAssets.length / totalCount) * 100) : 0;
+  DOM.statGoodPct.textContent = `${goodPct}% operational`;
+  DOM.statGoodBar.style.width = `${goodPct}%`;
+
+  DOM.statMaintCount.textContent = maintAssets.length;
+  const maintPct = totalCount > 0 ? Math.round((maintAssets.length / totalCount) * 100) : 0;
+  DOM.statMaintBar.style.width = `${maintPct}%`;
+
+  DOM.statOosCount.textContent = oosAssets.length;
+  const oosPct = totalCount > 0 ? Math.round((oosAssets.length / totalCount) * 100) : 0;
+  DOM.statOosBar.style.width = `${oosPct}%`;
+
+  // Update status tab counters
+  DOM.countTabAll.textContent = totalCount;
+  DOM.countTabGood.textContent = goodAssets.length;
+  DOM.countTabMaint.textContent = maintAssets.length;
+  DOM.countTabOos.textContent = oosAssets.length;
+}
+
+function getFilteredAssets() {
+  return AppState.assets.filter(asset => {
+    // Search Filter
+    const query = AppState.searchQuery.toLowerCase().trim();
+    const matchesSearch = !query || 
+      asset.name.toLowerCase().includes(query) ||
+      asset.serial.toLowerCase().includes(query) ||
+      asset.id.toLowerCase().includes(query) ||
+      (asset.location && asset.location.toLowerCase().includes(query)) ||
+      asset.category.toLowerCase().includes(query);
+
+    // Status Filter
+    const matchesStatus = AppState.statusFilter === 'ALL' || asset.status === AppState.statusFilter;
+
+    // Category Filter
+    const matchesCategory = AppState.categoryFilter === 'ALL' || asset.category === AppState.categoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+}
+
+function renderAssetDirectory() {
+  const filtered = getFilteredAssets();
+
+  if (filtered.length === 0) {
+    DOM.tableViewContainer.classList.add('hidden');
+    DOM.cardViewContainer.classList.add('hidden');
+    DOM.emptyState.classList.remove('hidden');
+    return;
+  }
+
+  DOM.emptyState.classList.add('hidden');
+
+  if (AppState.currentView === 'table') {
+    DOM.tableViewContainer.classList.remove('hidden');
+    DOM.cardViewContainer.classList.add('hidden');
+    renderTableView(filtered);
+  } else {
+    DOM.tableViewContainer.classList.add('hidden');
+    DOM.cardViewContainer.classList.remove('hidden');
+    renderCardView(filtered);
+  }
+}
+
+function renderTableView(assets) {
+  DOM.assetTableBody.innerHTML = assets.map(asset => {
+    const statusBadge = getStatusBadgeHTML(asset.status);
+    const thumbnail = asset.imageUrl 
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-slate-800 border border-slate-700">`
+      : `<div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500"><i class="fa-solid fa-box text-sm"></i></div>`;
+
+    return `
+      <tr class="border-b border-slate-800/60">
+        <td class="py-3.5 px-4">
+          <div class="flex items-center gap-3">
+            ${thumbnail}
+            <div>
+              <p class="font-bold text-white leading-snug">${escapeHTML(asset.name)}</p>
+              <p class="text-xs text-slate-400 font-mono">${escapeHTML(asset.id)}</p>
+            </div>
+          </div>
+        </td>
+        <td class="py-3.5 px-4 text-xs font-medium text-slate-300">
+          ${escapeHTML(asset.category)}
+        </td>
+        <td class="py-3.5 px-4 text-xs font-mono text-slate-400">
+          ${escapeHTML(asset.serial)}
+        </td>
+        <td class="py-3.5 px-4 text-xs text-slate-300">
+          <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
+        </td>
+        <td class="py-3.5 px-4">
+          ${statusBadge}
+        </td>
+        <td class="py-3.5 px-4 text-xs font-mono text-slate-400">
+          ${asset.lastMaintenance ? asset.lastMaintenance : '<span class="text-slate-600">Never</span>'}
+        </td>
+        <td class="py-3.5 px-4 text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors" title="View Maintenance History">
+              <i class="fa-solid fa-history text-xs"></i>
+            </button>
+            <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Edit Asset">
+              <i class="fa-solid fa-pen-to-square text-xs"></i>
+            </button>
+            <button onclick="confirmDeleteAsset('${asset.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Asset">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderCardView(assets) {
+  DOM.cardViewContainer.innerHTML = assets.map(asset => {
+    const statusBadge = getStatusBadgeHTML(asset.status);
+    const thumbnail = asset.imageUrl 
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-slate-800">`
+      : `<div class="w-full h-40 bg-slate-800/80 flex items-center justify-center text-slate-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
+
+    return `
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col hover:border-slate-700 transition-all">
+        <div class="relative">
+          ${thumbnail}
+          <div class="absolute top-3 right-3">
+            ${statusBadge}
+          </div>
+          <div class="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300">
+            ${escapeHTML(asset.serial)}
+          </div>
+        </div>
+
+        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">${escapeHTML(asset.category)}</span>
+              <span class="text-xs font-mono text-slate-400 font-semibold">$${(asset.value || 0).toLocaleString()}</span>
+            </div>
+            <h4 class="font-bold text-white text-base leading-snug">${escapeHTML(asset.name)}</h4>
+            <p class="text-xs text-slate-400 mt-1">
+              <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
+            </p>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <div>
+              <span class="block text-[10px] text-slate-500 uppercase font-semibold">Last Serviced</span>
+              <span class="font-mono">${asset.lastMaintenance ? asset.lastMaintenance : 'N/A'}</span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-history text-[10px]"></i> History
+              </button>
+              <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="confirmDeleteAsset('${asset.id}')" class="p-1.5 text-rose-400 hover:text-rose-300 bg-rose-500/10 rounded-lg transition-colors">
+                <i class="fa-solid fa-trash text-xs"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getStatusBadgeHTML(status) {
+  if (status === 'Good') {
+    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-good"><i class="fa-solid fa-circle text-[6px]"></i> Good</span>`;
+  } else if (status === 'Maintenance Needed') {
+    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-maintenance"><i class="fa-solid fa-wrench text-[10px]"></i> Service Needed</span>`;
+  } else {
+    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-oos"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Out of Service</span>`;
+  }
+}
+
+
+// ==========================================
+// 6. ASSET CRUD MODAL HANDLERS
+// ==========================================
+
+function updateAssetFormPreview(url) {
+  if (url) {
+    DOM.assetFormPreviewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+  } else {
+    DOM.assetFormPreviewBox.innerHTML = `<i class="fa-solid fa-image text-lg text-slate-600"></i>`;
+  }
+}
+
+function openAddAssetModal() {
+  DOM.assetForm.reset();
+  DOM.assetFormId.value = '';
+  DOM.assetFileLabel.textContent = 'Choose Local Device Image';
+  DOM.assetModalTitle.textContent = 'Add New Asset';
+  DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
+  updateAssetFormPreview('');
+  DOM.assetModal.classList.remove('hidden');
+}
+
+function openEditAssetModal(assetId) {
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  DOM.assetFormId.value = asset.id;
+  DOM.assetFormName.value = asset.name;
+  DOM.assetFormCategory.value = asset.category;
+  DOM.assetFormSerial.value = asset.serial;
+  DOM.assetFormStatus.value = asset.status;
+  DOM.assetFormLocation.value = asset.location || '';
+  DOM.assetFormLastMaint.value = asset.lastMaintenance || '';
+  DOM.assetFormValue.value = asset.value || '';
+  DOM.assetFormImage.value = asset.imageUrl || '';
+  DOM.assetFileLabel.textContent = 'Choose Local Device Image';
+
+  updateAssetFormPreview(asset.imageUrl || '');
+  DOM.assetModalTitle.textContent = `Edit Asset (${asset.id})`;
+  DOM.assetModal.classList.remove('hidden');
+}
+
+function closeAssetModal() {
+  DOM.assetModal.classList.add('hidden');
+}
+
+function handleAssetFormSubmit(e) {
+  e.preventDefault();
+
+  const id = DOM.assetFormId.value;
+  const isEditing = Boolean(id);
+
+  const assetData = {
+    id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
+    name: DOM.assetFormName.value.trim(),
+    category: DOM.assetFormCategory.value,
+    serial: DOM.assetFormSerial.value.trim(),
+    status: DOM.assetFormStatus.value,
+    location: DOM.assetFormLocation.value.trim(),
+    lastMaintenance: DOM.assetFormLastMaint.value,
+    value: parseFloat(DOM.assetFormValue.value) || 0,
+    imageUrl: DOM.assetFormImage.value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (isEditing) {
+    const idx = AppState.assets.findIndex(a => a.id === id);
+    if (idx !== -1) {
+      AppState.assets[idx] = { ...AppState.assets[idx], ...assetData };
+    }
+    showToast('Asset record updated successfully.', 'success');
+  } else {
+    AppState.assets.unshift(assetData);
+    showToast('New asset record added.', 'success');
+  }
+
+  StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+  closeAssetModal();
+  refreshAppUI();
+}
+
+function confirmDeleteAsset(assetId) {
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  if (confirm(`Are you sure you want to delete asset "${asset.name}" (${asset.serial})?`)) {
+    AppState.assets = AppState.assets.filter(a => a.id !== assetId);
+    // Also remove associated maintenance logs
+    AppState.logs = AppState.logs.filter(l => l.assetId !== assetId);
+
+    StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+    StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+
+    refreshAppUI();
+    showToast(`Asset ${assetId} deleted.`, 'info');
+  }
+}
+
+
+// ==========================================
+// 7. MAINTENANCE HISTORY LOG TIMELINE MODAL
+// ==========================================
+
+function updateLogFormPreview(url) {
+  if (url) {
+    DOM.logFormPreviewBox.classList.remove('hidden');
+    DOM.logFormPreviewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+  } else {
+    DOM.logFormPreviewBox.classList.add('hidden');
+    DOM.logFormPreviewBox.innerHTML = '';
+  }
+}
+
+function openHistoryModal(assetId) {
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  DOM.historyModalAssetName.textContent = asset.name;
+  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+    asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
+  }`;
+  DOM.historyModalAssetStatus.textContent = asset.status;
+  DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
+
+  // Form default hidden
+  DOM.newLogForm.classList.add('hidden');
+  DOM.logFormAssetId.value = asset.id;
+  DOM.logFormDate.value = new Date().toISOString().split('T')[0];
+  DOM.logFormNewStatus.value = asset.status;
+  DOM.logFormTechnician.value = '';
+  DOM.logFormCost.value = '';
+  DOM.logFormImage.value = '';
+  DOM.logFileLabel.textContent = 'Upload Local Photo';
+  updateLogFormPreview('');
+  DOM.logFormNotes.value = '';
+
+  renderTimelineLogs(asset.id);
+  DOM.historyModal.classList.remove('hidden');
+}
+
+function closeHistoryModal() {
+  DOM.historyModal.classList.add('hidden');
+}
+
+function renderTimelineLogs(assetId) {
+  const logs = AppState.logs.filter(l => l.assetId === assetId).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (logs.length === 0) {
+    DOM.timelineContainer.innerHTML = '';
+    DOM.emptyTimeline.classList.remove('hidden');
+    return;
+  }
+
+  DOM.emptyTimeline.classList.add('hidden');
+
+  DOM.timelineContainer.innerHTML = logs.map(log => {
+    let dotClass = 'good';
+    if (log.statusAfter === 'Maintenance Needed') dotClass = 'maint';
+    if (log.statusAfter === 'Out of Service') dotClass = 'oos';
+
+    const photoImg = log.imageUrl 
+      ? `<div class="mt-3"><img src="${log.imageUrl}" alt="Maintenance Photo" class="w-32 h-20 object-cover rounded-lg border border-slate-700"></div>`
+      : '';
+
+    return `
+      <div class="relative pl-2">
+        <div class="timeline-dot ${dotClass}"></div>
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-bold text-white font-mono">${log.date}</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
+              Cost: $${(log.cost || 0).toFixed(2)}
+            </span>
+          </div>
+
+          <div class="text-xs text-slate-300 flex items-center gap-2">
+            <span class="text-slate-400">Technician:</span>
+            <strong class="text-indigo-300">${escapeHTML(log.technician || 'N/A')}</strong>
+          </div>
+
+          <div class="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 mt-2">
+            ${escapeHTML(log.notes)}
+          </div>
+
+          ${photoImg}
+
+          <div class="text-[10px] text-slate-500 pt-1 flex items-center gap-1.5">
+            <span>Status change:</span>
+            <span class="text-slate-400 font-semibold">${log.statusBefore || 'N/A'}</span>
+            <i class="fa-solid fa-arrow-right text-[8px]"></i>
+            <span class="text-indigo-400 font-semibold">${log.statusAfter}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleNewLogSubmit(e) {
+  e.preventDefault();
+  const assetId = DOM.logFormAssetId.value;
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  const newStatus = DOM.logFormNewStatus.value;
+  const serviceDate = DOM.logFormDate.value;
+
+  const logEntry = {
+    id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+    assetId: asset.id,
+    date: serviceDate,
+    technician: DOM.logFormTechnician.value.trim() || 'Internal Servicing',
+    statusBefore: asset.status,
+    statusAfter: newStatus,
+    cost: parseFloat(DOM.logFormCost.value) || 0,
+    imageUrl: DOM.logFormImage.value.trim(),
+    notes: DOM.logFormNotes.value.trim()
+  };
+
+  // Add to logs state
+  AppState.logs.unshift(logEntry);
+  StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+
+  // Update asset status and lastMaintenance date
+  asset.status = newStatus;
+  asset.lastMaintenance = serviceDate;
+  asset.updatedAt = new Date().toISOString();
+  StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+
+  // Refresh UI
+  DOM.newLogForm.classList.add('hidden');
+  renderTimelineLogs(asset.id);
+  refreshAppUI();
+
+  // Update Modal Header Badge
+  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+    asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
+  }`;
+  DOM.historyModalAssetStatus.textContent = asset.status;
+
+  showToast('Maintenance log recorded successfully!', 'success');
+}
+
+
+// ==========================================
+// 8. TOAST NOTIFICATIONS & UTILITIES
+// ==========================================
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  let iconClass = 'fa-circle-info text-cyan-400';
+  let borderClass = 'border-cyan-500/30';
+
+  if (type === 'success') {
+    iconClass = 'fa-circle-check text-emerald-400';
+    borderClass = 'border-emerald-500/30';
+  } else if (type === 'error') {
+    iconClass = 'fa-circle-exclamation text-rose-400';
+    borderClass = 'border-rose-500/30';
+  }
+
+  toast.className = `toast-item pointer-events-auto bg-slate-900 border ${borderClass} text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs min-w-[240px]`;
+  toast.innerHTML = `
+    <i class="fa-solid ${iconClass} text-base"></i>
+    <span class="flex-1">${escapeHTML(message)}</span>
+  `;
+
+  DOM.toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
+
+// ==========================================
+// 9. EVENT LISTENERS INITIALIZATION
+// ==========================================
+
+function initEventListeners() {
+  // Login Form Submit
+  DOM.loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    handleLogin(DOM.loginStoreCode.value, DOM.loginPassword.value);
+  });
+
+  // Store Creation Modal Events
+  DOM.openCreateStoreBtnLogin.addEventListener('click', openCreateStoreModal);
+  DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
+  DOM.closeStoreModalBtn.addEventListener('click', closeCreateStoreModal);
+  DOM.cancelStoreModalBtn.addEventListener('click', closeCreateStoreModal);
+  DOM.storeForm.addEventListener('submit', handleStoreFormSubmit);
+
+  // User Dropdown Menu Toggle
+  DOM.userMenuBtn.addEventListener('click', () => {
+    DOM.userMenuDropdown.classList.toggle('hidden');
+  });
+
+  // Close Dropdown on outside click
+  document.addEventListener('click', e => {
+    if (!DOM.userMenuBtn.contains(e.target) && !DOM.userMenuDropdown.contains(e.target)) {
+      DOM.userMenuDropdown.classList.add('hidden');
+    }
+  });
+
+  // Header Actions
+  DOM.logoutBtn.addEventListener('click', handleLogout);
+  DOM.switchStoreBtn.addEventListener('click', handleLogout);
+  DOM.resetStoreDataBtn.addEventListener('click', () => {
+    if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
+      StorageManager.resetStoreData(AppState.activeStore.code);
+      loadStoreSession();
+      DOM.userMenuDropdown.classList.add('hidden');
+      showToast('Store data reset to demo defaults.', 'info');
+    }
+  });
+
+  // Open Add Asset Modal
+  DOM.openAddAssetBtn.addEventListener('click', openAddAssetModal);
+  DOM.emptyAddBtn.addEventListener('click', openAddAssetModal);
+  DOM.closeAssetModalBtn.addEventListener('click', closeAssetModal);
+  DOM.cancelAssetModalBtn.addEventListener('click', closeAssetModal);
+
+  // Asset Form Submit
+  DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
+
+  // Local File Upload Listener for Asset Form
+  DOM.assetFormFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+      DOM.assetFileLabel.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Url = evt.target.result;
+        DOM.assetFormImage.value = base64Url;
+        updateAssetFormPreview(base64Url);
+        showToast('Local image selected & encoded.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Image URL Input Listener for Asset Form
+  DOM.assetFormImage.addEventListener('input', e => {
+    updateAssetFormPreview(e.target.value.trim());
+  });
+
+  // Image Preset Buttons in Asset Form
+  document.querySelectorAll('.preset-img-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      DOM.assetFormImage.value = url;
+      DOM.assetFileLabel.textContent = 'Choose Local Device Image';
+      updateAssetFormPreview(url);
+    });
+  });
+
+  // Maintenance History Modal Actions
+  DOM.closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
+  DOM.toggleNewLogFormBtn.addEventListener('click', () => {
+    DOM.newLogForm.classList.toggle('hidden');
+  });
+  DOM.cancelLogFormBtn.addEventListener('click', () => {
+    DOM.newLogForm.classList.add('hidden');
+  });
+  DOM.newLogForm.addEventListener('submit', handleNewLogSubmit);
+
+  // Local File Upload Listener for Maintenance Log Form
+  DOM.logFormFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+      DOM.logFileLabel.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Url = evt.target.result;
+        DOM.logFormImage.value = base64Url;
+        updateLogFormPreview(base64Url);
+        showToast('Service receipt image selected.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Image URL Input Listener for Log Form
+  DOM.logFormImage.addEventListener('input', e => {
+    updateLogFormPreview(e.target.value.trim());
+  });
+
+  // Layout View Switcher (Table vs Card)
+  DOM.viewTableViewBtn.addEventListener('click', () => {
+    AppState.currentView = 'table';
+    DOM.viewTableViewBtn.classList.add('bg-slate-800', 'text-indigo-400');
+    DOM.viewTableViewBtn.classList.remove('text-slate-400');
+    DOM.viewCardViewBtn.classList.remove('bg-slate-800', 'text-indigo-400');
+    DOM.viewCardViewBtn.classList.add('text-slate-400');
+    renderAssetDirectory();
+  });
+
+  DOM.viewCardViewBtn.addEventListener('click', () => {
+    AppState.currentView = 'card';
+    DOM.viewCardViewBtn.classList.add('bg-slate-800', 'text-indigo-400');
+    DOM.viewCardViewBtn.classList.remove('text-slate-400');
+    DOM.viewTableViewBtn.classList.remove('bg-slate-800', 'text-indigo-400');
+    DOM.viewTableViewBtn.classList.add('text-slate-400');
+    renderAssetDirectory();
+  });
+
+  // Search Input Filter
+  DOM.searchInput.addEventListener('input', e => {
+    AppState.searchQuery = e.target.value;
+    renderAssetDirectory();
+  });
+
+  // Category Select Filter
+  DOM.categoryFilter.addEventListener('change', e => {
+    AppState.categoryFilter = e.target.value;
+    renderAssetDirectory();
+  });
+
+  // Status Tab Chips Filter
+  DOM.statusTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      DOM.statusTabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      AppState.statusFilter = btn.getAttribute('data-status');
+      renderAssetDirectory();
+    });
+  });
+}
+
+// Global functions exposed for inline onclick handlers in dynamically generated HTML
+window.openHistoryModal = openHistoryModal;
+window.openEditAssetModal = openEditAssetModal;
+window.confirmDeleteAsset = confirmDeleteAsset;
+
+// Bootstrap Application
+document.addEventListener('DOMContentLoaded', () => {
+  initEventListeners();
+  renderStoreAccountsList();
+  loadStoreSession();
+});
