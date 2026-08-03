@@ -625,25 +625,27 @@ function switchLoginTab(mode) {
 function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
+  // Render store list without displaying passwords!
   DOM.storeListContainer.innerHTML = stores.map(s => `
-    <button type="button" class="demo-login-btn p-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}" data-pass="${escapeHTML(s.password)}">
+    <button type="button" class="demo-login-btn p-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}">
       <span class="flex items-center gap-2">
-        <i class="fa-solid fa-store text-indigo-400"></i>
+        <i class="fa-solid fa-store text-indigo-400 text-sm"></i>
         <strong class="text-white font-mono">${escapeHTML(s.code)}</strong> 
-        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[130px]">(${escapeHTML(s.name)})</span>
+        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[160px]">(${escapeHTML(s.name)})</span>
       </span>
-      <span class="text-[10px] text-slate-500 font-mono">pass: ${escapeHTML(s.password)}</span>
+      <span class="text-[10px] text-indigo-400 font-medium">Select &rarr;</span>
     </button>
   `).join('');
 
+  // When store button is clicked: SELECT account & ASK FOR PASSWORD!
   DOM.storeListContainer.querySelectorAll('.demo-login-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchLoginTab('store');
       const code = btn.getAttribute('data-code');
-      const pass = btn.getAttribute('data-pass');
       DOM.loginStoreCode.value = code;
-      DOM.loginPassword.value = pass;
-      handleLogin(code, pass);
+      DOM.loginPassword.value = '';
+      DOM.loginPassword.focus();
+      showToast(`Selected store "${code}". Please type password to log in.`, 'info');
     });
   });
 }
@@ -739,7 +741,6 @@ function loadUserSession() {
     DOM.dropdownUserRole.textContent = `Role: System Administrator`;
     DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
 
-    // Admin default active store selection
     let activeCode = StorageManager.getActiveStoreCode() || (stores[0] ? stores[0].code : 'STORE-01');
     let storeObj = stores.find(s => s.code === activeCode) || stores[0] || { code: 'STORE-01', name: 'Downtown Branch Store' };
     AppState.activeStore = storeObj;
@@ -759,15 +760,12 @@ function loadUserSession() {
     StorageManager.setActiveStoreCode(storeObj.code);
   }
 
-  // Populate Header Store Selector Dropdown
   renderHeaderStoreSelector();
 
-  // Load Data & Render
   AppState.assets = StorageManager.getAssets(AppState.activeStore.code);
   AppState.logs = StorageManager.getLogs(AppState.activeStore.code);
   DOM.activeStoreNameDisplay.textContent = AppState.activeStore.name;
 
-  // Show Workspace View
   DOM.loginSection.classList.add('hidden');
   DOM.appSection.classList.remove('hidden');
   DOM.appSection.classList.add('flex');
@@ -816,12 +814,19 @@ function closeAdminStoreManagerModal() {
 function renderAdminStoreTable() {
   const stores = StorageManager.getStores();
 
-  DOM.adminStoreTableBody.innerHTML = stores.map(s => `
+  // Mask passwords by default, with toggle show/hide icon for Admin
+  DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => `
     <tr class="hover:bg-slate-900/60 transition-colors border-b border-slate-800">
       <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
       <td class="py-3 px-4 text-white font-medium">${escapeHTML(s.name)}</td>
       <td class="py-3 px-4 font-mono text-slate-300">
-        <span class="bg-slate-900 px-2 py-1 rounded border border-slate-800">${escapeHTML(s.password)}</span>
+        <div class="inline-flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
+          <span id="storePwdMask_${idx}">••••••••</span>
+          <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
+          <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-slate-500 hover:text-white ml-1">
+            <i id="pwdEye_${idx}" class="fa-solid fa-eye text-xs"></i>
+          </button>
+        </div>
       </td>
       <td class="py-3 px-4 text-right">
         <div class="flex items-center justify-end gap-2">
@@ -835,6 +840,22 @@ function renderAdminStoreTable() {
       </td>
     </tr>
   `).join('');
+}
+
+function toggleStorePasswordVisibility(idx) {
+  const maskSpan = document.getElementById(`storePwdMask_${idx}`);
+  const realSpan = document.getElementById(`storePwdReal_${idx}`);
+  const eyeIcon = document.getElementById(`pwdEye_${idx}`);
+
+  if (realSpan.classList.contains('hidden')) {
+    realSpan.classList.remove('hidden');
+    maskSpan.classList.add('hidden');
+    eyeIcon.className = 'fa-solid fa-eye-slash text-xs text-amber-400';
+  } else {
+    realSpan.classList.add('hidden');
+    maskSpan.classList.remove('hidden');
+    eyeIcon.className = 'fa-solid fa-eye text-xs text-slate-500';
+  }
 }
 
 function openCreateStoreModal() {
@@ -1282,11 +1303,8 @@ function confirmDeleteAsset(assetId) {
 
 function canUserAddComment(storeCode) {
   if (!AppState.currentUser) return false;
-  // 1. Admin accounts can add comments to ANY store
   if (AppState.currentUser.role === 'admin') return true;
-  // 2. Specific Store account assigned to that store can add comments
   if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
-  // 3. Otherwise unauthorized
   return false;
 }
 
@@ -1311,7 +1329,6 @@ function openHistoryModal(assetId) {
   DOM.historyModalAssetStatus.textContent = asset.status;
   DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
 
-  // Check Comment Authorization
   const isAuthorizedToComment = canUserAddComment(AppState.activeStore.code);
 
   if (isAuthorizedToComment) {
@@ -1323,7 +1340,6 @@ function openHistoryModal(assetId) {
     DOM.newLogForm.classList.add('hidden');
   }
 
-  // Reset Log Form
   DOM.newLogForm.classList.add('hidden');
   DOM.logFormAssetId.value = asset.id;
   DOM.logFormDate.value = new Date().toISOString().split('T')[0];
@@ -1500,19 +1516,19 @@ function initEventListeners() {
   DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
   DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
 
-  // Admin Quick Fill Buttons
+  // Admin Quick Selection Buttons (Sets username, clears password, REQUIRES USER TO TYPE PASSWORD)
   document.querySelectorAll('.admin-demo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchLoginTab('admin');
       const user = btn.getAttribute('data-user');
-      const pass = btn.getAttribute('data-pass');
       DOM.loginStoreCode.value = user;
-      DOM.loginPassword.value = pass;
-      handleLogin(user, pass);
+      DOM.loginPassword.value = '';
+      DOM.loginPassword.focus();
+      showToast(`Selected Admin account "${user}". Please type password to log in.`, 'info');
     });
   });
 
-  // Login Form Submit
+  // Login Form Submit (Requires correct password)
   DOM.loginForm.addEventListener('submit', e => {
     e.preventDefault();
     handleLogin(DOM.loginStoreCode.value, DOM.loginPassword.value);
@@ -1709,6 +1725,7 @@ window.openEditAssetModal = openEditAssetModal;
 window.confirmDeleteAsset = confirmDeleteAsset;
 window.openEditStoreModal = openEditStoreModal;
 window.confirmDeleteStore = confirmDeleteStore;
+window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 
 // Bootstrap Application
 document.addEventListener('DOMContentLoaded', () => {
