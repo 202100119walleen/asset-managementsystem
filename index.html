@@ -95,10 +95,10 @@
         </button>
       </form>
 
-      <!-- Account Selection (Stores & Admin) -->
+      <!-- Account Selection Sections (Toggled per Tab) -->
       <div class="mt-6 pt-5 border-t border-slate-800 space-y-4">
-        <!-- Admin Accounts Quick Selection -->
-        <div>
+        <!-- Admin Accounts Quick Selection (Only shown when Admin Portal is active) -->
+        <div id="adminAccountsSection" class="hidden">
           <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <i class="fa-solid fa-user-shield text-xs"></i> Select Admin Account
           </p>
@@ -115,8 +115,8 @@
           </div>
         </div>
 
-        <!-- Available Store Accounts Quick Selection -->
-        <div>
+        <!-- Available Store Accounts Quick Selection (Only shown when Store Login is active) -->
+        <div id="storeAccountsSection">
           <div class="flex items-center justify-between mb-2">
             <p class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-store text-xs"></i> Select Store Account

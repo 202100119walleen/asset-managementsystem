@@ -303,7 +303,6 @@ class StorageManager {
     const stores = StorageManager.getStores();
     const cleanNewCode = newCode.trim().toUpperCase();
 
-    // If changing store code, ensure uniqueness
     if (originalCode !== cleanNewCode && stores.some(s => s.code === cleanNewCode)) {
       return { success: false, message: `Store code "${cleanNewCode}" already exists.` };
     }
@@ -314,7 +313,6 @@ class StorageManager {
     const updatedStore = { code: cleanNewCode, name: name.trim(), password: password.trim() };
     stores[idx] = updatedStore;
 
-    // Migrate asset and log data if code changed
     if (originalCode !== cleanNewCode) {
       const assets = StorageManager.getAssets(originalCode);
       const logs = StorageManager.getLogs(originalCode);
@@ -326,7 +324,6 @@ class StorageManager {
 
     StorageManager.saveStores(stores);
 
-    // Upsert to Supabase
     if (supabaseClient) {
       supabaseClient.from('stores').upsert(updatedStore).catch(err => console.log('Supabase store update note:', err));
     }
@@ -483,6 +480,8 @@ const DOM = {
   loginError: document.getElementById('loginError'),
   loginErrorText: document.getElementById('loginErrorText'),
   loginSubmitBtnText: document.getElementById('loginSubmitBtnText'),
+  adminAccountsSection: document.getElementById('adminAccountsSection'),
+  storeAccountsSection: document.getElementById('storeAccountsSection'),
   storeListContainer: document.getElementById('storeListContainer'),
 
   // Header Elements
@@ -613,12 +612,20 @@ function switchLoginTab(mode) {
     DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-indigo-400 mr-1.5"></i> Store Code`;
     DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
     DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
+
+    // Show Store accounts section ONLY
+    if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.add('hidden');
+    if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   } else {
     DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md transition-all flex items-center justify-center gap-1.5';
     DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
     DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1.5"></i> Admin Username`;
     DOM.loginStoreCode.placeholder = 'e.g. admin1, admin2, admin3';
     DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
+
+    // Show Admin accounts section ONLY
+    if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.remove('hidden');
+    if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.add('hidden');
   }
 }
 
@@ -710,6 +717,7 @@ function handleLogout() {
   DOM.loginSection.classList.remove('hidden');
   DOM.userMenuDropdown.classList.add('hidden');
   renderStoreAccountsList();
+  switchLoginTab('store');
   showToast('Logged out of session.', 'info');
 }
 
@@ -724,6 +732,7 @@ function loadUserSession() {
     DOM.appSection.classList.add('hidden');
     DOM.appSection.classList.remove('flex');
     renderStoreAccountsList();
+    switchLoginTab('store');
     return;
   }
 
@@ -814,7 +823,6 @@ function closeAdminStoreManagerModal() {
 function renderAdminStoreTable() {
   const stores = StorageManager.getStores();
 
-  // Mask passwords by default, with toggle show/hide icon for Admin
   DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => `
     <tr class="hover:bg-slate-900/60 transition-colors border-b border-slate-800">
       <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
@@ -1730,6 +1738,7 @@ window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 // Bootstrap Application
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
+  switchLoginTab('store');
   renderStoreAccountsList();
   loadUserSession();
 });
