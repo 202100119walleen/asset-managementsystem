@@ -220,12 +220,34 @@ class StorageManager {
         }));
         StorageManager.saveStores(mappedStores);
         if (typeof renderStoreAccountsList === 'function') renderStoreAccountsList();
-      } else if (remoteStores && remoteStores.length === 0) {
-        // Upsert default stores to Supabase
-        await supabaseClient.from('stores').upsert(DEFAULT_STORES);
+      }
+
+      // 2. Sync Assets from Supabase for Active Store
+      const activeCode = StorageManager.getActiveStoreCode();
+      if (activeCode) {
+        const { data: remoteAssets, error: assetsErr } = await supabaseClient.from('assets').select('*').eq('store_code', activeCode);
+        if (!assetsErr && remoteAssets && remoteAssets.length > 0) {
+          const mappedAssets = remoteAssets.map(a => ({
+            id: a.id,
+            name: a.name,
+            category: a.category,
+            serial: a.serial,
+            status: a.status,
+            location: a.location,
+            lastMaintenance: a.last_maintenance,
+            value: parseFloat(a.value) || 0,
+            imageUrl: a.image_url,
+            updatedAt: a.updated_at
+          }));
+          StorageManager.saveAssets(activeCode, mappedAssets, false); // false to prevent loop sync
+          if (AppState.activeStore && AppState.activeStore.code === activeCode) {
+            AppState.assets = mappedAssets;
+            if (typeof refreshAppUI === 'function') refreshAppUI();
+          }
+        }
       }
     } catch (e) {
-      console.log('Supabase stores sync info:', e.message);
+      console.log('Supabase sync note:', e.message);
     }
   }
 
@@ -290,12 +312,16 @@ class StorageManager {
     }
   }
 
-  static saveAssets(storeCode, assets) {
+  static saveAssets(storeCode, assets, pushToSupabase = true) {
     if (!storeCode) return;
-    localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
+    try {
+      localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
 
-    // Push to Supabase asynchronously
-    if (supabaseClient) {
+    // Push to Supabase asynchronously without blocking UI
+    if (pushToSupabase && supabaseClient) {
       const recordsToPush = assets.map(a => ({
         id: a.id,
         store_code: storeCode,
@@ -303,14 +329,16 @@ class StorageManager {
         category: a.category,
         serial: a.serial,
         status: a.status,
-        location: a.location,
-        last_maintenance: a.lastMaintenance,
-        value: a.value,
-        image_url: a.imageUrl,
+        location: a.location || '',
+        last_maintenance: a.lastMaintenance || '',
+        value: a.value || 0,
+        image_url: a.imageUrl || '',
         updated_at: a.updatedAt || new Date().toISOString()
       }));
 
-      supabaseClient.from('assets').upsert(recordsToPush).catch(err => console.log('Supabase asset push note:', err));
+      supabaseClient.from('assets').upsert(recordsToPush).then(({ error }) => {
+        if (error) console.log('Supabase asset push status:', error.message);
+      }).catch(err => console.log('Supabase push note:', err));
     }
   }
 
@@ -323,12 +351,16 @@ class StorageManager {
     }
   }
 
-  static saveLogs(storeCode, logs) {
+  static saveLogs(storeCode, logs, pushToSupabase = true) {
     if (!storeCode) return;
-    localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
+    try {
+      localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
+    } catch (e) {
+      console.warn('LocalStorage save log error:', e);
+    }
 
     // Push to Supabase asynchronously
-    if (supabaseClient) {
+    if (pushToSupabase && supabaseClient) {
       const logsToPush = logs.map(l => ({
         id: l.id,
         asset_id: l.assetId,
@@ -342,7 +374,9 @@ class StorageManager {
         notes: l.notes
       }));
 
-      supabaseClient.from('maintenance_logs').upsert(logsToPush).catch(err => console.log('Supabase log push note:', err));
+      supabaseClient.from('maintenance_logs').upsert(logsToPush).then(({ error }) => {
+        if (error) console.log('Supabase log push status:', error.message);
+      }).catch(err => console.log('Supabase log push note:', err));
     }
   }
 
@@ -836,6 +870,7 @@ function updateAssetFormPreview(url) {
 function openAddAssetModal() {
   DOM.assetForm.reset();
   DOM.assetFormId.value = '';
+  DOM.assetFormFileInput.value = '';
   DOM.assetFileLabel.textContent = 'Choose Local Device Image';
   DOM.assetModalTitle.textContent = 'Add New Asset';
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
@@ -856,6 +891,7 @@ function openEditAssetModal(assetId) {
   DOM.assetFormLastMaint.value = asset.lastMaintenance || '';
   DOM.assetFormValue.value = asset.value || '';
   DOM.assetFormImage.value = asset.imageUrl || '';
+  DOM.assetFormFileInput.value = '';
   DOM.assetFileLabel.textContent = 'Choose Local Device Image';
 
   updateAssetFormPreview(asset.imageUrl || '');
@@ -879,8 +915,8 @@ function handleAssetFormSubmit(e) {
     category: DOM.assetFormCategory.value,
     serial: DOM.assetFormSerial.value.trim(),
     status: DOM.assetFormStatus.value,
-    location: DOM.assetFormLocation.value.trim(),
-    lastMaintenance: DOM.assetFormLastMaint.value,
+    location: DOM.assetFormLocation.value.trim() || 'Main Area',
+    lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
     updatedAt: new Date().toISOString()
@@ -891,14 +927,31 @@ function handleAssetFormSubmit(e) {
     if (idx !== -1) {
       AppState.assets[idx] = { ...AppState.assets[idx], ...assetData };
     }
-    showToast('Asset record updated & synced.', 'success');
+    showToast(`Asset "${assetData.name}" updated successfully!`, 'success');
   } else {
     AppState.assets.unshift(assetData);
-    showToast('New asset record added & synced.', 'success');
+    showToast(`Asset "${assetData.name}" added successfully!`, 'success');
   }
 
+  // Save to LocalStorage & Supabase
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+
+  // Automatically reset search & filters so user IMMEDIATELY sees their newly saved asset!
+  AppState.searchQuery = '';
+  AppState.statusFilter = 'ALL';
+  AppState.categoryFilter = 'ALL';
+
+  if (DOM.searchInput) DOM.searchInput.value = '';
+  if (DOM.categoryFilter) DOM.categoryFilter.value = 'ALL';
+  DOM.statusTabBtns.forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-status') === 'ALL') btn.classList.add('active');
+  });
+
+  // Close modal instantly
   closeAssetModal();
+
+  // Instantly re-render full UI (dashboard stats & asset table/grid)
   refreshAppUI();
 }
 
@@ -915,7 +968,9 @@ function confirmDeleteAsset(assetId) {
     StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
     if (supabaseClient) {
-      supabaseClient.from('assets').delete().eq('id', assetId).catch(err => console.log('Supabase asset delete note:', err));
+      supabaseClient.from('assets').delete().eq('id', assetId).then(({ error }) => {
+        if (error) console.log('Supabase asset delete status:', error.message);
+      }).catch(err => console.log('Supabase asset delete note:', err));
     }
 
     refreshAppUI();
@@ -957,6 +1012,7 @@ function openHistoryModal(assetId) {
   DOM.logFormTechnician.value = '';
   DOM.logFormCost.value = '';
   DOM.logFormImage.value = '';
+  DOM.logFormFileInput.value = '';
   DOM.logFileLabel.textContent = 'Upload Local Photo';
   updateLogFormPreview('');
   DOM.logFormNotes.value = '';
