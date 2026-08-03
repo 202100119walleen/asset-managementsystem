@@ -561,10 +561,14 @@ function openCreateStoreModal() {
   DOM.storeFormError.classList.add('hidden');
   DOM.userMenuDropdown.classList.add('hidden');
   DOM.storeModal.classList.remove('hidden');
+  DOM.storeModal.classList.add('flex');
+  DOM.storeModal.style.display = 'flex';
 }
 
 function closeCreateStoreModal() {
   DOM.storeModal.classList.add('hidden');
+  DOM.storeModal.classList.remove('flex');
+  DOM.storeModal.style.display = 'none';
 }
 
 function handleStoreFormSubmit(e) {
@@ -875,7 +879,11 @@ function openAddAssetModal() {
   DOM.assetModalTitle.textContent = 'Add New Asset';
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   updateAssetFormPreview('');
+  
+  // Show modal explicitly
   DOM.assetModal.classList.remove('hidden');
+  DOM.assetModal.classList.add('flex');
+  DOM.assetModal.style.display = 'flex';
 }
 
 function openEditAssetModal(assetId) {
@@ -896,11 +904,17 @@ function openEditAssetModal(assetId) {
 
   updateAssetFormPreview(asset.imageUrl || '');
   DOM.assetModalTitle.textContent = `Edit Asset (${asset.id})`;
+
+  // Show modal explicitly
   DOM.assetModal.classList.remove('hidden');
+  DOM.assetModal.classList.add('flex');
+  DOM.assetModal.style.display = 'flex';
 }
 
 function closeAssetModal() {
   DOM.assetModal.classList.add('hidden');
+  DOM.assetModal.classList.remove('flex');
+  DOM.assetModal.style.display = 'none';
 }
 
 function handleAssetFormSubmit(e) {
@@ -933,10 +947,10 @@ function handleAssetFormSubmit(e) {
     showToast(`Asset "${assetData.name}" added successfully!`, 'success');
   }
 
-  // Save to LocalStorage & Supabase
+  // 1. Save to LocalStorage & Supabase
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
-  // Automatically reset search & filters so user IMMEDIATELY sees their newly saved asset!
+  // 2. Automatically reset search & filters so user IMMEDIATELY sees their newly saved asset!
   AppState.searchQuery = '';
   AppState.statusFilter = 'ALL';
   AppState.categoryFilter = 'ALL';
@@ -948,10 +962,10 @@ function handleAssetFormSubmit(e) {
     if (btn.getAttribute('data-status') === 'ALL') btn.classList.add('active');
   });
 
-  // Close modal instantly
+  // 3. Close modal forcefully
   closeAssetModal();
 
-  // Instantly re-render full UI (dashboard stats & asset table/grid)
+  // 4. Instantly re-render full UI (dashboard stats & asset table/grid)
   refreshAppUI();
 }
 
@@ -1019,10 +1033,14 @@ function openHistoryModal(assetId) {
 
   renderTimelineLogs(asset.id);
   DOM.historyModal.classList.remove('hidden');
+  DOM.historyModal.classList.add('flex');
+  DOM.historyModal.style.display = 'flex';
 }
 
 function closeHistoryModal() {
   DOM.historyModal.classList.add('hidden');
+  DOM.historyModal.classList.remove('flex');
+  DOM.historyModal.style.display = 'none';
 }
 
 function renderTimelineLogs(assetId) {
@@ -1216,6 +1234,26 @@ function initEventListeners() {
 
   // Asset Form Submit
   DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
+
+  // Backdrop overlay click closes modals
+  [DOM.assetModal, DOM.historyModal, DOM.storeModal].forEach(modal => {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.style.display = 'none';
+      }
+    });
+  });
+
+  // ESC key closes any open modal
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeAssetModal();
+      closeHistoryModal();
+      closeCreateStoreModal();
+    }
+  });
 
   // Local File Upload Listener for Asset Form
   DOM.assetFormFileInput.addEventListener('change', e => {
