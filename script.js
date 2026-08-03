@@ -484,7 +484,7 @@ const DOM = {
   storeAccountsSection: document.getElementById('storeAccountsSection'),
   storeListContainer: document.getElementById('storeListContainer'),
 
-  // Header Elements
+  // Header & Sidebar Elements
   roleBadge: document.getElementById('roleBadge'),
   roleDisplayName: document.getElementById('roleDisplayName'),
   activeStoreNameDisplay: document.getElementById('activeStoreNameDisplay'),
@@ -607,23 +607,21 @@ function switchLoginTab(mode) {
   DOM.loginForm.reset();
 
   if (mode === 'store') {
-    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1.5';
-    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+    DOM.tabStoreLogin.className = 'flex-1 py-2.5 rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-2';
+    DOM.tabAdminLogin.className = 'flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2';
     DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-indigo-400 mr-1.5"></i> Store Code`;
     DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
     DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
 
-    // Show Store accounts section ONLY
     if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.add('hidden');
     if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   } else {
-    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md transition-all flex items-center justify-center gap-1.5';
-    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+    DOM.tabAdminLogin.className = 'flex-1 py-2.5 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md transition-all flex items-center justify-center gap-2';
+    DOM.tabStoreLogin.className = 'flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2';
     DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1.5"></i> Admin Username`;
     DOM.loginStoreCode.placeholder = 'e.g. admin1, admin2, admin3';
     DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
 
-    // Show Admin accounts section ONLY
     if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.remove('hidden');
     if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.add('hidden');
   }
@@ -632,7 +630,6 @@ function switchLoginTab(mode) {
 function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
-  // Render store list without displaying passwords!
   DOM.storeListContainer.innerHTML = stores.map(s => `
     <button type="button" class="demo-login-btn p-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}">
       <span class="flex items-center gap-2">
@@ -644,7 +641,6 @@ function renderStoreAccountsList() {
     </button>
   `).join('');
 
-  // When store button is clicked: SELECT account & ASK FOR PASSWORD!
   DOM.storeListContainer.querySelectorAll('.demo-login-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchLoginTab('store');
@@ -715,7 +711,7 @@ function handleLogout() {
   DOM.appSection.classList.add('hidden');
   DOM.appSection.classList.remove('flex');
   DOM.loginSection.classList.remove('hidden');
-  DOM.userMenuDropdown.classList.add('hidden');
+  if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
   renderStoreAccountsList();
   switchLoginTab('store');
   showToast('Logged out of session.', 'info');
@@ -739,16 +735,18 @@ function loadUserSession() {
   AppState.currentUser = savedSession;
   const stores = StorageManager.getStores();
 
+  const sidebarAdminBlock = document.getElementById('sidebarAdminBlock');
+
   // Configure UI based on Role
   if (savedSession.role === 'admin') {
     // Admin Role Configuration
-    DOM.roleBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono';
+    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono';
     DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
-    DOM.adminManageStoresBtn.classList.remove('hidden');
-    DOM.adminManageStoresBtn.classList.add('flex');
-    DOM.openCreateStoreBtnHeader.classList.remove('hidden');
-    DOM.dropdownUserRole.textContent = `Role: System Administrator`;
-    DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
+    if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.remove('hidden');
+    if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.remove('hidden');
+    if (sidebarAdminBlock) sidebarAdminBlock.classList.remove('hidden');
+    if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: System Administrator`;
+    if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
 
     let activeCode = StorageManager.getActiveStoreCode() || (stores[0] ? stores[0].code : 'STORE-01');
     let storeObj = stores.find(s => s.code === activeCode) || stores[0] || { code: 'STORE-01', name: 'Downtown Branch Store' };
@@ -756,13 +754,13 @@ function loadUserSession() {
     StorageManager.setActiveStoreCode(storeObj.code);
   } else {
     // Store Role Configuration
-    DOM.roleBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono';
+    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono';
     DOM.roleDisplayName.textContent = `STORE • ${savedSession.storeCode}`;
-    DOM.adminManageStoresBtn.classList.add('hidden');
-    DOM.adminManageStoresBtn.classList.remove('flex');
-    DOM.openCreateStoreBtnHeader.classList.add('hidden');
-    DOM.dropdownUserRole.textContent = `Role: Store User`;
-    DOM.dropdownUserDetail.textContent = `Store Code: ${savedSession.storeCode}`;
+    if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.add('hidden');
+    if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.add('hidden');
+    if (sidebarAdminBlock) sidebarAdminBlock.classList.add('hidden');
+    if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: Store User`;
+    if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Store Code: ${savedSession.storeCode}`;
 
     let storeObj = stores.find(s => s.code === savedSession.storeCode) || { code: savedSession.storeCode, name: savedSession.name };
     AppState.activeStore = storeObj;
@@ -773,7 +771,7 @@ function loadUserSession() {
 
   AppState.assets = StorageManager.getAssets(AppState.activeStore.code);
   AppState.logs = StorageManager.getLogs(AppState.activeStore.code);
-  DOM.activeStoreNameDisplay.textContent = AppState.activeStore.name;
+  if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = AppState.activeStore.name;
 
   DOM.loginSection.classList.add('hidden');
   DOM.appSection.classList.remove('hidden');
@@ -786,14 +784,16 @@ function renderHeaderStoreSelector() {
   const stores = StorageManager.getStores();
   const isAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
-  if (isAdmin) {
-    DOM.activeStoreSelect.disabled = false;
-    DOM.activeStoreSelect.innerHTML = stores.map(s => 
-      `<option value="${s.code}" ${s.code === AppState.activeStore.code ? 'selected' : ''}>${s.code} (${s.name})</option>`
-    ).join('');
-  } else {
-    DOM.activeStoreSelect.disabled = true;
-    DOM.activeStoreSelect.innerHTML = `<option value="${AppState.activeStore.code}">${AppState.activeStore.code}</option>`;
+  if (DOM.activeStoreSelect) {
+    if (isAdmin) {
+      DOM.activeStoreSelect.disabled = false;
+      DOM.activeStoreSelect.innerHTML = stores.map(s => 
+        `<option value="${s.code}" ${s.code === AppState.activeStore.code ? 'selected' : ''}>${s.code} (${s.name})</option>`
+      ).join('');
+    } else {
+      DOM.activeStoreSelect.disabled = true;
+      DOM.activeStoreSelect.innerHTML = `<option value="${AppState.activeStore.code}">${AppState.activeStore.code}</option>`;
+    }
   }
 }
 
@@ -828,7 +828,7 @@ function renderAdminStoreTable() {
       <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
       <td class="py-3 px-4 text-white font-medium">${escapeHTML(s.name)}</td>
       <td class="py-3 px-4 font-mono text-slate-300">
-        <div class="inline-flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
+        <div class="inline-flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
           <span id="storePwdMask_${idx}">••••••••</span>
           <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
           <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-slate-500 hover:text-white ml-1">
@@ -877,7 +877,7 @@ function openCreateStoreModal() {
   DOM.storeModalTitle.textContent = 'Register New Store Account (Admin Only)';
   DOM.seedOptionContainer.classList.remove('hidden');
   DOM.storeFormError.classList.add('hidden');
-  DOM.userMenuDropdown.classList.add('hidden');
+  if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
   
   DOM.storeModal.classList.remove('hidden');
   DOM.storeModal.classList.add('flex');
@@ -1118,7 +1118,7 @@ function renderCardView(assets) {
       : `<div class="w-full h-40 bg-slate-800/80 flex items-center justify-center text-slate-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
 
     return `
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col hover:border-slate-700 transition-all">
+      <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl overflow-hidden shadow-xl flex flex-col hover:border-slate-700 transition-all">
         <div class="relative">
           ${thumbnail}
           <div class="absolute top-3 right-3">
@@ -1542,60 +1542,89 @@ function initEventListeners() {
     handleLogin(DOM.loginStoreCode.value, DOM.loginPassword.value);
   });
 
-  // Header Store Switcher Dropdown
-  DOM.activeStoreSelect.addEventListener('change', e => {
-    const selectedCode = e.target.value;
-    const stores = StorageManager.getStores();
-    const storeObj = stores.find(s => s.code === selectedCode);
-    if (storeObj) {
-      AppState.activeStore = storeObj;
-      StorageManager.setActiveStoreCode(storeObj.code);
-      AppState.assets = StorageManager.getAssets(storeObj.code);
-      AppState.logs = StorageManager.getLogs(storeObj.code);
-      DOM.activeStoreNameDisplay.textContent = storeObj.name;
-      refreshAppUI();
-      showToast(`Switched active store view to ${storeObj.code}`, 'info');
-    }
-  });
+  // Store Switcher Dropdown (Sidebar & Header)
+  if (DOM.activeStoreSelect) {
+    DOM.activeStoreSelect.addEventListener('change', e => {
+      const selectedCode = e.target.value;
+      const stores = StorageManager.getStores();
+      const storeObj = stores.find(s => s.code === selectedCode);
+      if (storeObj) {
+        AppState.activeStore = storeObj;
+        StorageManager.setActiveStoreCode(storeObj.code);
+        AppState.assets = StorageManager.getAssets(storeObj.code);
+        AppState.logs = StorageManager.getLogs(storeObj.code);
+        if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = storeObj.name;
+        refreshAppUI();
+        showToast(`Switched active store view to ${storeObj.code}`, 'info');
+      }
+    });
+  }
 
   // Admin Console & Store Modals
-  DOM.adminManageStoresBtn.addEventListener('click', openAdminStoreManagerModal);
+  if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.addEventListener('click', openAdminStoreManagerModal);
   DOM.closeAdminStoreManagerModalBtn.addEventListener('click', closeAdminStoreManagerModal);
   DOM.adminCreateNewStoreBtn.addEventListener('click', () => {
     closeAdminStoreManagerModal();
     openCreateStoreModal();
   });
-  DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
+  if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
   DOM.closeStoreModalBtn.addEventListener('click', closeCreateStoreModal);
   DOM.cancelStoreModalBtn.addEventListener('click', closeCreateStoreModal);
   DOM.storeForm.addEventListener('submit', handleStoreFormSubmit);
 
-  // User Dropdown Menu Toggle
-  DOM.userMenuBtn.addEventListener('click', () => {
-    DOM.userMenuDropdown.classList.toggle('hidden');
-  });
+  // Mobile sidebar toggle & backdrop listeners
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  const sidebarNav = document.getElementById('sidebarNav');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-  // Close Dropdown on outside click
-  document.addEventListener('click', e => {
-    if (!DOM.userMenuBtn.contains(e.target) && !DOM.userMenuDropdown.contains(e.target)) {
-      DOM.userMenuDropdown.classList.add('hidden');
-    }
-  });
+  if (sidebarToggleBtn && sidebarNav && sidebarBackdrop) {
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebarNav.classList.toggle('-translate-x-full');
+      sidebarBackdrop.classList.toggle('hidden');
+    });
+
+    sidebarBackdrop.addEventListener('click', () => {
+      sidebarNav.classList.add('-translate-x-full');
+      sidebarBackdrop.classList.add('hidden');
+    });
+  }
+
+  // Sidebar Logout Button
+  const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+  if (sidebarLogoutBtn) {
+    sidebarLogoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // User Dropdown Menu Toggle
+  if (DOM.userMenuBtn && DOM.userMenuDropdown) {
+    DOM.userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      DOM.userMenuDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', e => {
+      if (!DOM.userMenuBtn.contains(e.target) && !DOM.userMenuDropdown.contains(e.target)) {
+        DOM.userMenuDropdown.classList.add('hidden');
+      }
+    });
+  }
 
   // Header Actions
-  DOM.logoutBtn.addEventListener('click', handleLogout);
-  DOM.resetStoreDataBtn.addEventListener('click', () => {
-    if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
-      StorageManager.resetStoreData(AppState.activeStore.code);
-      loadUserSession();
-      DOM.userMenuDropdown.classList.add('hidden');
-      showToast('Store data reset to demo defaults.', 'info');
-    }
-  });
+  if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
+  if (DOM.resetStoreDataBtn) {
+    DOM.resetStoreDataBtn.addEventListener('click', () => {
+      if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
+        StorageManager.resetStoreData(AppState.activeStore.code);
+        loadUserSession();
+        if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
+        showToast('Store data reset to demo defaults.', 'info');
+      }
+    });
+  }
 
   // Open Add Asset Modal
-  DOM.openAddAssetBtn.addEventListener('click', openAddAssetModal);
-  DOM.emptyAddBtn.addEventListener('click', openAddAssetModal);
+  if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.addEventListener('click', openAddAssetModal);
+  if (DOM.emptyAddBtn) DOM.emptyAddBtn.addEventListener('click', openAddAssetModal);
   DOM.closeAssetModalBtn.addEventListener('click', closeAssetModal);
   DOM.cancelAssetModalBtn.addEventListener('click', closeAssetModal);
 
