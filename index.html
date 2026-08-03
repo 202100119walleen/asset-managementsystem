@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Asset Management System</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased flex flex-col">
+
+  <!-- ========================================== -->
+  <!-- 1. AUTHENTICATION / STORE SELECTION VIEW  -->
+  <!-- ========================================== -->
+  <div id="loginSection" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-radial-gradient">
+    <!-- Decorative background glow blobs -->
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md bg-slate-900/80 border border-slate-800 backdrop-blur-xl rounded-2xl p-8 shadow-2xl relative z-10">
+      <!-- Logo & Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 text-slate-950 shadow-lg shadow-indigo-500/30 mb-4">
+          <i class="fa-solid fa-boxes-stacked text-3xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Asset Core</h1>
+        <p class="text-sm text-slate-400 mt-1">Multi-Store Equipment & Asset Management</p>
+        
+        <!-- Supabase Live Connection Indicator -->
+        <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Connected to Supabase</span>
+        </div>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2" for="loginStoreCode">
+            <i class="fa-solid fa-store text-indigo-400 mr-1.5"></i> Store Code
+          </label>
+          <input 
+            type="text" 
+            id="loginStoreCode" 
+            placeholder="e.g. STORE-01" 
+            required
+            class="w-full px-4 py-3 bg-slate-950/70 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono uppercase"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2" for="loginPassword">
+            <i class="fa-solid fa-lock text-indigo-400 mr-1.5"></i> Password
+          </label>
+          <input 
+            type="password" 
+            id="loginPassword" 
+            placeholder="••••••••" 
+            required
+            class="w-full px-4 py-3 bg-slate-950/70 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          >
+        </div>
+
+        <div id="loginError" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-lg items-center gap-2">
+          <i class="fa-solid fa-circle-exclamation text-sm"></i>
+          <span id="loginErrorText">Invalid Store Code or Password.</span>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
+        >
+          <span>Access Store Dashboard</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <!-- Store Accounts List & Add Store Button -->
+      <div class="mt-8 pt-6 border-t border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-medium text-slate-400">Available Stores:</p>
+          <button id="openCreateStoreBtnLogin" type="button" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+            <i class="fa-solid fa-plus-circle text-xs"></i> Register New Store
+          </button>
+        </div>
+
+        <!-- Rendered dynamically by script.js -->
+        <div id="storeListContainer" class="grid grid-cols-1 gap-2 text-xs max-h-48 overflow-y-auto pr-1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 2. MAIN APPLICATION WORKSPACE (POST-LOGIN) -->
+  <!-- ========================================== -->
+  <div id="appSection" class="hidden flex-col min-h-screen flex-1">
+    
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-30 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+        
+        <!-- Brand & Active Store Badge -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 shadow-md">
+            <i class="fa-solid fa-boxes-stacked text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-bold text-white tracking-tight text-base sm:text-lg">Asset Core</h2>
+              <span id="activeStoreBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono">
+                <i class="fa-solid fa-store text-[10px]"></i>
+                <span id="activeStoreCodeDisplay">STORE-01</span>
+              </span>
+              <!-- Supabase Status Badge -->
+              <span title="Cloud database synced with Supabase" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <i class="fa-solid fa-database text-[9px]"></i> Supabase Sync
+              </span>
+            </div>
+            <p id="activeStoreNameDisplay" class="text-xs text-slate-400 hidden sm:block">Downtown Branch Store</p>
+          </div>
+        </div>
+
+        <!-- Global Search & Header Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="openAddAssetBtn" class="px-3.5 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-medium text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span class="hidden sm:inline">Add New Asset</span>
+            <span class="sm:hidden">Add</span>
+          </button>
+
+          <!-- Store Menu Dropdown Toggle -->
+          <div class="relative">
+            <button id="userMenuBtn" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition-colors flex items-center gap-2">
+              <i class="fa-solid fa-store-slash text-slate-400"></i>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+            
+            <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-xl py-2 z-40">
+              <div class="px-4 py-2 border-b border-slate-800">
+                <p class="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Authenticated Store</p>
+                <p id="dropdownStoreCode" class="text-sm font-bold text-white font-mono mt-0.5">STORE-01</p>
+              </div>
+              <button id="openCreateStoreBtnHeader" class="w-full text-left px-4 py-2.5 text-xs text-indigo-400 hover:bg-indigo-500/10 flex items-center gap-2">
+                <i class="fa-solid fa-circle-plus text-indigo-400 w-4"></i> Add New Store Account
+              </button>
+              <button id="switchStoreBtn" class="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-arrow-right-left text-cyan-400 w-4"></i> Switch Store Account
+              </button>
+              <button id="resetStoreDataBtn" class="w-full text-left px-4 py-2.5 text-xs text-amber-400 hover:bg-amber-500/10 flex items-center gap-2">
+                <i class="fa-solid fa-rotate-left w-4"></i> Reset Store Demo Data
+              </button>
+              <div class="border-t border-slate-800 my-1"></div>
+              <button id="logoutBtn" class="w-full text-left px-4 py-2.5 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket w-4"></i> Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+      <!-- ========================================== -->
+      <!-- DASHBOARD METRIC SUMMARY CARDS             -->
+      <!-- ========================================== -->
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Total Assets -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Assets</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <i class="fa-solid fa-boxes-stacked text-sm"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="statTotalCount" class="text-2xl sm:text-3xl font-extrabold text-white">0</span>
+            <span id="statTotalValue" class="text-xs text-slate-400 font-mono">$0 Total</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div class="bg-indigo-500 h-full w-full rounded-full"></div>
+          </div>
+        </div>
+
+        <!-- Active / Good -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Good Condition</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i class="fa-solid fa-circle-check text-sm"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="statGoodCount" class="text-2xl sm:text-3xl font-extrabold text-emerald-400">0</span>
+            <span id="statGoodPct" class="text-xs text-slate-400">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="statGoodBar" class="bg-emerald-500 h-full w-0 rounded-full transition-all duration-500"></div>
+          </div>
+        </div>
+
+        <!-- Maintenance Needed -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Needs Service</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i class="fa-solid fa-wrench text-sm"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="statMaintCount" class="text-2xl sm:text-3xl font-extrabold text-amber-400">0</span>
+            <span id="statMaintBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">Action Needed</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="statMaintBar" class="bg-amber-500 h-full w-0 rounded-full transition-all duration-500"></div>
+          </div>
+        </div>
+
+        <!-- Out of Service -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Out of Service</span>
+            <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+            </div>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="statOosCount" class="text-2xl sm:text-3xl font-extrabold text-rose-400">0</span>
+            <span class="text-xs text-slate-400">Inactive</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="statOosBar" class="bg-rose-500 h-full w-0 rounded-full transition-all duration-500"></div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ========================================== -->
+      <!-- CONTROLS & TOOLBAR (SEARCH & FILTERS)     -->
+      <!-- ========================================== -->
+      <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <!-- Search Box -->
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search by asset name, ID, serial number, or location..." 
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700/70 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            >
+          </div>
+
+          <!-- Category Filter & View Mode Toggles -->
+          <div class="flex items-center gap-3">
+            <select id="categoryFilter" class="px-3.5 py-2.5 bg-slate-950/80 border border-slate-700/70 rounded-xl text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="ALL">All Categories</option>
+              <option value="HVAC / Aircon">HVAC / Aircon</option>
+              <option value="Laptops & IT">Laptops & IT</option>
+              <option value="POS & Cashier">POS & Cashier</option>
+              <option value="Refrigeration">Refrigeration</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Kitchen Equipment">Kitchen Equipment</option>
+              <option value="Vehicles">Vehicles</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <!-- Layout Switcher (Table vs Card) -->
+            <div class="flex items-center p-1 bg-slate-950 rounded-xl border border-slate-800">
+              <button id="viewTableViewBtn" class="p-2 rounded-lg text-indigo-400 bg-slate-800 transition-colors" title="Table View">
+                <i class="fa-solid fa-list-ul text-sm"></i>
+              </button>
+              <button id="viewCardViewBtn" class="p-2 rounded-lg text-slate-400 hover:text-white transition-colors" title="Card View">
+                <i class="fa-solid fa-grip text-sm"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Tabs Chips -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-t border-slate-800/80 pt-3">
+          <span class="text-slate-500 font-semibold uppercase tracking-wider text-[10px] mr-1">Status:</span>
+          <button class="status-tab-btn active px-3 py-1.5 rounded-lg bg-indigo-500 text-white font-medium transition-all" data-status="ALL">
+            All Assets (<span id="countTabAll">0</span>)
+          </button>
+          <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 font-medium transition-all" data-status="Good">
+            <i class="fa-solid fa-circle text-[8px] text-emerald-400 mr-1"></i> Good (<span id="countTabGood">0</span>)
+          </button>
+          <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 font-medium transition-all" data-status="Maintenance Needed">
+            <i class="fa-solid fa-circle text-[8px] text-amber-400 mr-1"></i> Maintenance Needed (<span id="countTabMaint">0</span>)
+          </button>
+          <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 text-slate-300 font-medium transition-all" data-status="Out of Service">
+            <i class="fa-solid fa-circle text-[8px] text-rose-400 mr-1"></i> Out of Service (<span id="countTabOos">0</span>)
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ========================================== -->
+      <!-- ASSET DIRECTORY (TABLE & CARD VIEWS)       -->
+      <!-- ========================================== -->
+
+      <!-- TABLE VIEW -->
+      <div id="tableViewContainer" class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950/70 text-slate-400 uppercase text-[11px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3.5 px-4 font-semibold">Asset Info</th>
+                <th class="py-3.5 px-4 font-semibold">Category</th>
+                <th class="py-3.5 px-4 font-semibold">Serial / ID</th>
+                <th class="py-3.5 px-4 font-semibold">Location</th>
+                <th class="py-3.5 px-4 font-semibold">Status</th>
+                <th class="py-3.5 px-4 font-semibold">Last Service</th>
+                <th class="py-3.5 px-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody" class="divide-y divide-slate-800/60 font-normal">
+              <!-- Rendered dynamically by script.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CARD GRID VIEW -->
+      <div id="cardViewContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by script.js -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="emptyState" class="hidden bg-slate-900/60 border border-slate-800 border-dashed rounded-2xl p-12 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-slate-800/80 text-slate-500 flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        <h3 class="text-base font-bold text-white mb-1">No Assets Found</h3>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto mb-5">There are no assets matching your current search criteria or status filter for this store.</p>
+        <button id="emptyAddBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg transition-all inline-flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Add New Asset
+        </button>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-950 border-t border-slate-800/60 py-4 mt-8 text-center text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>© 2026 Asset Core • Store Asset Management System</p>
+        <p class="text-[11px] text-emerald-400/90 flex items-center gap-1">
+          <i class="fa-solid fa-cloud"></i> Synced with Supabase &amp; LocalStorage
+        </p>
+      </div>
+    </footer>
+
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 3. MODAL: CREATE NEW STORE ACCOUNT        -->
+  <!-- ========================================== -->
+  <div id="storeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-8">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+            <i class="fa-solid fa-store text-sm"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Register New Store Account</h3>
+        </div>
+        <button id="closeStoreModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form id="storeForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="newStoreCode">
+            Store Code * (Unique Identifier)
+          </label>
+          <input 
+            type="text" 
+            id="newStoreCode" 
+            placeholder="e.g. STORE-03 or WEST-01" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="newStoreName">
+            Store Name / Branch Location *
+          </label>
+          <input 
+            type="text" 
+            id="newStoreName" 
+            placeholder="e.g. Westside Retail Branch" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="newStorePassword">
+            Account Password *
+          </label>
+          <input 
+            type="password" 
+            id="newStorePassword" 
+            placeholder="••••••••" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="newStoreSeedOption">
+            Initial Data Setup
+          </label>
+          <select 
+            id="newStoreSeedOption" 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+          >
+            <option value="empty">Start with Clean Empty Store</option>
+            <option value="seed">Pre-load Sample Demo Equipment & Logs</option>
+          </select>
+        </div>
+
+        <div id="storeFormError" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-lg flex items-center gap-2">
+          <i class="fa-solid fa-circle-exclamation text-sm"></i>
+          <span id="storeFormErrorText">Store code already exists.</span>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="cancelStoreModalBtn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition-colors">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all">
+            Create Store Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 4. MODAL: ADD / EDIT ASSET                 -->
+  <!-- ========================================== -->
+  <div id="assetModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-8">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+            <i class="fa-solid fa-pen-to-square text-sm"></i>
+          </div>
+          <h3 id="assetModalTitle" class="text-base font-bold text-white">Add New Asset</h3>
+        </div>
+        <button id="closeAssetModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form id="assetForm" class="p-6 space-y-4">
+        <input type="hidden" id="assetFormId">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormName">
+            Asset Name *
+          </label>
+          <input 
+            type="text" 
+            id="assetFormName" 
+            placeholder="e.g. Daikin Inverter Split AC 2.5HP" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormCategory">
+              Category *
+            </label>
+            <select 
+              id="assetFormCategory" 
+              required 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+            >
+              <option value="HVAC / Aircon">HVAC / Aircon</option>
+              <option value="Laptops & IT">Laptops & IT</option>
+              <option value="POS & Cashier">POS & Cashier</option>
+              <option value="Refrigeration">Refrigeration</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Kitchen Equipment">Kitchen Equipment</option>
+              <option value="Vehicles">Vehicles</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormSerial">
+              Serial / Asset ID *
+            </label>
+            <input 
+              type="text" 
+              id="assetFormSerial" 
+              placeholder="e.g. SN-8849-AC" 
+              required 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormStatus">
+              Current Condition / Status *
+            </label>
+            <select 
+              id="assetFormStatus" 
+              required 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+            >
+              <option value="Good">Good Condition</option>
+              <option value="Maintenance Needed">Maintenance Needed</option>
+              <option value="Out of Service">Out of Service</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormLocation">
+              Location / Area
+            </label>
+            <input 
+              type="text" 
+              id="assetFormLocation" 
+              placeholder="e.g. Counter 1, Kitchen" 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormLastMaint">
+              Last Maintenance Date
+            </label>
+            <input 
+              type="date" 
+              id="assetFormLastMaint" 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+            >
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="assetFormValue">
+              Est. Value / Cost ($)
+            </label>
+            <input 
+              type="number" 
+              id="assetFormValue" 
+              placeholder="1200" 
+              min="0"
+              step="0.01"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >
+          </div>
+        </div>
+
+        <!-- IMAGE INPUT SECTION -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Asset Photo / Image (Upload File or URL Link)
+          </label>
+          
+          <div class="flex items-center gap-2">
+            <label class="flex-1 cursor-pointer">
+              <input type="file" id="assetFormFileInput" accept="image/*" class="hidden">
+              <div class="px-3.5 py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2 transition-colors border-dashed">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-400 text-sm"></i>
+                <span id="assetFileLabel">Choose Local Device Image</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="relative">
+            <input 
+              type="url" 
+              id="assetFormImage" 
+              placeholder="Or paste external image URL (https://...)" 
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >
+          </div>
+
+          <!-- Preview & Presets Bar -->
+          <div class="flex items-center gap-3 pt-1">
+            <div id="assetFormPreviewBox" class="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center text-slate-600 shrink-0">
+              <i class="fa-solid fa-image text-lg"></i>
+            </div>
+            <div class="flex-1 overflow-hidden">
+              <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Quick Sample Presets:</p>
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]">
+                <button type="button" class="preset-img-btn px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" data-url="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80">Aircon</button>
+                <button type="button" class="preset-img-btn px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" data-url="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80">Laptop</button>
+                <button type="button" class="preset-img-btn px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" data-url="https://images.unsplash.com/photo-1556742049-0a670fc8078a?w=500&auto=format&fit=crop&q=80">POS</button>
+                <button type="button" class="preset-img-btn px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" data-url="https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80">Fridge</button>
+                <button type="button" class="preset-img-btn px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" data-url="https://images.unsplash.com/photo-1580481072645-022f9a6d83d0?w=500&auto=format&fit=crop&q=80">Furniture</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="cancelAssetModalBtn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition-colors">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all">
+            Save Asset Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 5. MODAL: MAINTENANCE HISTORY & LOG TIMELINE -->
+  <!-- ========================================== -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 id="historyModalAssetName" class="text-lg font-bold text-white">Asset Maintenance Log</h3>
+            <span id="historyModalAssetStatus" class="px-2.5 py-0.5 rounded-full text-xs font-semibold">Good</span>
+          </div>
+          <p id="historyModalAssetMeta" class="text-xs text-slate-400 font-mono mt-0.5">SN-8849-AC • HVAC / Aircon</p>
+        </div>
+        <button id="closeHistoryModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Content -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1">
+
+        <!-- Form Toggle for Adding New Maintenance Entry -->
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-wrench"></i> Record New Service Entry
+            </h4>
+            <button id="toggleNewLogFormBtn" class="text-xs text-slate-300 hover:text-white font-medium bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+              <i class="fa-solid fa-plus text-[10px] mr-1"></i> Add Service Log
+            </button>
+          </div>
+
+          <!-- Inline Log Form -->
+          <form id="newLogForm" class="hidden mt-4 pt-4 border-t border-slate-800/80 space-y-4">
+            <input type="hidden" id="logFormAssetId">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Service Date *</label>
+                <input type="date" id="logFormDate" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Technician / Vendor</label>
+                <input type="text" id="logFormTechnician" placeholder="e.g. HVAC Solutions Inc." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Update Asset Condition *</label>
+                <select id="logFormNewStatus" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+                  <option value="Good">Good (Operational)</option>
+                  <option value="Maintenance Needed">Maintenance Needed</option>
+                  <option value="Out of Service">Out of Service</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Cost ($)</label>
+                <input type="number" id="logFormCost" min="0" step="0.01" placeholder="150.00" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+              </div>
+            </div>
+
+            <!-- LOG PHOTO INPUT SECTION -->
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Service Photo / Receipt (Upload or Link)</label>
+              <div class="flex items-center gap-2">
+                <label class="flex-1 cursor-pointer">
+                  <input type="file" id="logFormFileInput" accept="image/*" class="hidden">
+                  <div class="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-2 transition-colors border-dashed">
+                    <i class="fa-solid fa-upload text-indigo-400"></i>
+                    <span id="logFileLabel">Upload Local Photo</span>
+                  </div>
+                </label>
+                <input type="url" id="logFormImage" placeholder="Or paste image URL https://..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+              </div>
+              <div id="logFormPreviewBox" class="hidden w-full h-24 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden text-center flex items-center justify-center">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Service Notes & Work Performed *</label>
+              <textarea id="logFormNotes" rows="3" required placeholder="Describe maintenance work, parts replaced, or diagnostic notes..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button type="button" id="cancelLogFormBtn" class="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs rounded-lg">Cancel</button>
+              <button type="submit" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg">Save Log Entry</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- History Timeline Container -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Historical Maintenance Records</h4>
+          <div id="timelineContainer" class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+            <!-- Timeline items rendered dynamically by script.js -->
+          </div>
+          
+          <div id="emptyTimeline" class="hidden text-center py-8 text-slate-500 text-xs">
+            <i class="fa-solid fa-clipboard-list text-2xl mb-2 text-slate-600 block"></i>
+            No maintenance records logged for this asset yet.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 6. TOAST NOTIFICATION CONTAINER            -->
+  <!-- ========================================== -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none">
+    <!-- Dynamic toasts inserted via JS -->
+  </div>
+
+  <!-- Custom App JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
