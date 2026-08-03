@@ -923,11 +923,14 @@ function handleAssetFormSubmit(e) {
   const id = DOM.assetFormId.value;
   const isEditing = Boolean(id);
 
+  const userSerial = DOM.assetFormSerial.value.trim();
+  const serialNumber = userSerial || `SN-${Math.floor(1000 + Math.random() * 9000)}`;
+
   const assetData = {
     id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     name: DOM.assetFormName.value.trim(),
     category: DOM.assetFormCategory.value,
-    serial: DOM.assetFormSerial.value.trim(),
+    serial: serialNumber,
     status: DOM.assetFormStatus.value,
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
     lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
