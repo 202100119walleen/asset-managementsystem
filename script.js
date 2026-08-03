@@ -606,19 +606,24 @@ function switchLoginTab(mode) {
   DOM.loginError.classList.add('hidden');
   DOM.loginForm.reset();
 
+  // Reset password field to password type if toggled
+  if (DOM.loginPassword) DOM.loginPassword.type = 'password';
+  const loginPwdEyeIcon = document.getElementById('loginPwdEyeIcon');
+  if (loginPwdEyeIcon) loginPwdEyeIcon.className = 'fa-solid fa-eye text-xs text-zinc-500';
+
   if (mode === 'store') {
-    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg bg-zinc-800 text-white shadow-sm transition-all flex items-center justify-center gap-2';
-    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2';
-    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-zinc-400 mr-1.5"></i> Store Code`;
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg bg-zinc-800 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 font-semibold';
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1.5 font-medium';
+    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-zinc-400 mr-1"></i> Store Code`;
     DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
     DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
 
     if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.add('hidden');
     if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   } else {
-    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-sm transition-all flex items-center justify-center gap-2';
-    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2';
-    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1.5"></i> Admin Username`;
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-sm transition-all flex items-center justify-center gap-1.5';
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1.5 font-medium';
+    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1"></i> Admin Username`;
     DOM.loginStoreCode.placeholder = 'e.g. admin1, admin2, admin3';
     DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
 
@@ -631,11 +636,11 @@ function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
   DOM.storeListContainer.innerHTML = stores.map(s => `
-    <button type="button" class="demo-login-btn p-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-left flex items-center justify-between text-zinc-300 transition-colors" data-code="${escapeHTML(s.code)}">
+    <button type="button" class="demo-login-btn p-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-left flex items-center justify-between text-zinc-300 transition-colors" data-code="${escapeHTML(s.code)}">
       <span class="flex items-center gap-2">
-        <i class="fa-solid fa-store text-zinc-400 text-sm"></i>
-        <strong class="text-white font-mono">${escapeHTML(s.code)}</strong> 
-        <span class="text-zinc-400 text-[11px] font-normal truncate max-w-[160px]">(${escapeHTML(s.name)})</span>
+        <i class="fa-solid fa-store text-zinc-400 text-xs"></i>
+        <strong class="text-white font-mono text-xs">${escapeHTML(s.code)}</strong> 
+        <span class="text-zinc-400 text-[10px] font-normal truncate max-w-[140px]">(${escapeHTML(s.name)})</span>
       </span>
       <span class="text-[10px] text-zinc-400 font-medium">Select &rarr;</span>
     </button>
@@ -1523,6 +1528,21 @@ function initEventListeners() {
   // Login Tab Switching
   DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
   DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
+
+  // Password Visibility Toggle for Login Form
+  const toggleLoginPasswordBtn = document.getElementById('toggleLoginPasswordBtn');
+  const loginPwdEyeIcon = document.getElementById('loginPwdEyeIcon');
+  if (toggleLoginPasswordBtn && DOM.loginPassword && loginPwdEyeIcon) {
+    toggleLoginPasswordBtn.addEventListener('click', () => {
+      if (DOM.loginPassword.type === 'password') {
+        DOM.loginPassword.type = 'text';
+        loginPwdEyeIcon.className = 'fa-solid fa-eye-slash text-xs text-zinc-300';
+      } else {
+        DOM.loginPassword.type = 'password';
+        loginPwdEyeIcon.className = 'fa-solid fa-eye text-xs text-zinc-500';
+      }
+    });
+  }
 
   // Admin Quick Selection Buttons (Sets username, clears password, REQUIRES USER TO TYPE PASSWORD)
   document.querySelectorAll('.admin-demo-btn').forEach(btn => {
