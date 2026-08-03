@@ -1,6 +1,6 @@
 /**
  * Store Asset Management System - Core JavaScript Application Logic
- * Integrated with Supabase Cloud Backend + LocalStorage Cache
+ * Role-Based Access Control (RBAC) + Supabase Cloud Backend + LocalStorage Cache
  */
 
 // ==========================================
@@ -21,8 +21,15 @@ if (window.supabase) {
 }
 
 // ==========================================
-// 2. DEFAULT SEED DATA & INITIALIZATION
+// 2. ADMIN ACCOUNTS & DEFAULT SEED DATA
 // ==========================================
+
+// 3 Admin Accounts - Same permissions & role
+const DEFAULT_ADMINS = [
+  { username: 'admin1', name: 'System Admin 1', password: 'adminpass1', role: 'admin' },
+  { username: 'admin2', name: 'System Admin 2', password: 'adminpass2', role: 'admin' },
+  { username: 'admin3', name: 'System Admin 3', password: 'adminpass3', role: 'admin' }
+];
 
 const DEFAULT_STORES = [
   { code: 'STORE-01', name: 'Downtown Branch Store', password: 'pass123' },
@@ -220,6 +227,7 @@ class StorageManager {
         }));
         StorageManager.saveStores(mappedStores);
         if (typeof renderStoreAccountsList === 'function') renderStoreAccountsList();
+        if (typeof renderAdminStoreTable === 'function') renderAdminStoreTable();
       }
 
       // 2. Sync Assets from Supabase for Active Store
@@ -239,7 +247,7 @@ class StorageManager {
             imageUrl: a.image_url,
             updatedAt: a.updated_at
           }));
-          StorageManager.saveAssets(activeCode, mappedAssets, false); // false to prevent loop sync
+          StorageManager.saveAssets(activeCode, mappedAssets, false);
           if (AppState.activeStore && AppState.activeStore.code === activeCode) {
             AppState.assets = mappedAssets;
             if (typeof refreshAppUI === 'function') refreshAppUI();
@@ -291,6 +299,53 @@ class StorageManager {
     return { success: true, store: newStore };
   }
 
+  static updateStoreCredentials(originalCode, newCode, name, password) {
+    const stores = StorageManager.getStores();
+    const cleanNewCode = newCode.trim().toUpperCase();
+
+    // If changing store code, ensure uniqueness
+    if (originalCode !== cleanNewCode && stores.some(s => s.code === cleanNewCode)) {
+      return { success: false, message: `Store code "${cleanNewCode}" already exists.` };
+    }
+
+    const idx = stores.findIndex(s => s.code === originalCode);
+    if (idx === -1) return { success: false, message: 'Store not found.' };
+
+    const updatedStore = { code: cleanNewCode, name: name.trim(), password: password.trim() };
+    stores[idx] = updatedStore;
+
+    // Migrate asset and log data if code changed
+    if (originalCode !== cleanNewCode) {
+      const assets = StorageManager.getAssets(originalCode);
+      const logs = StorageManager.getLogs(originalCode);
+      localStorage.setItem(`ams_assets_${cleanNewCode}`, JSON.stringify(assets));
+      localStorage.setItem(`ams_logs_${cleanNewCode}`, JSON.stringify(logs));
+      localStorage.removeItem(`ams_assets_${originalCode}`);
+      localStorage.removeItem(`ams_logs_${originalCode}`);
+    }
+
+    StorageManager.saveStores(stores);
+
+    // Upsert to Supabase
+    if (supabaseClient) {
+      supabaseClient.from('stores').upsert(updatedStore).catch(err => console.log('Supabase store update note:', err));
+    }
+
+    return { success: true, store: updatedStore };
+  }
+
+  static deleteStore(code) {
+    let stores = StorageManager.getStores();
+    stores = stores.filter(s => s.code !== code);
+    StorageManager.saveStores(stores);
+    localStorage.removeItem(`ams_assets_${code}`);
+    localStorage.removeItem(`ams_logs_${code}`);
+
+    if (supabaseClient) {
+      supabaseClient.from('stores').delete().eq('code', code).catch(err => console.log('Supabase store delete note:', err));
+    }
+  }
+
   static getActiveStoreCode() {
     return localStorage.getItem('ams_active_store');
   }
@@ -320,7 +375,6 @@ class StorageManager {
       console.warn('LocalStorage save error:', e);
     }
 
-    // Push to Supabase asynchronously without blocking UI
     if (pushToSupabase && supabaseClient) {
       const recordsToPush = assets.map(a => ({
         id: a.id,
@@ -359,7 +413,6 @@ class StorageManager {
       console.warn('LocalStorage save log error:', e);
     }
 
-    // Push to Supabase asynchronously
     if (pushToSupabase && supabaseClient) {
       const logsToPush = logs.map(l => ({
         id: l.id,
@@ -403,6 +456,8 @@ StorageManager.initStorage();
 // ==========================================
 
 const AppState = {
+  loginMode: 'store', // 'store' | 'admin'
+  currentUser: null, // { role: 'admin' | 'store', username?: string, storeCode?: string, name: string }
   activeStore: null,
   assets: [],
   logs: [],
@@ -418,38 +473,53 @@ const DOM = {
   loginSection: document.getElementById('loginSection'),
   appSection: document.getElementById('appSection'),
   
-  // Auth Form & Store List
+  // Auth Form & Tabs
+  tabStoreLogin: document.getElementById('tabStoreLogin'),
+  tabAdminLogin: document.getElementById('tabAdminLogin'),
   loginForm: document.getElementById('loginForm'),
+  loginLabelCode: document.getElementById('loginLabelCode'),
   loginStoreCode: document.getElementById('loginStoreCode'),
   loginPassword: document.getElementById('loginPassword'),
   loginError: document.getElementById('loginError'),
   loginErrorText: document.getElementById('loginErrorText'),
+  loginSubmitBtnText: document.getElementById('loginSubmitBtnText'),
   storeListContainer: document.getElementById('storeListContainer'),
-  openCreateStoreBtnLogin: document.getElementById('openCreateStoreBtnLogin'),
-  openCreateStoreBtnHeader: document.getElementById('openCreateStoreBtnHeader'),
 
-  // Store Registration Modal
+  // Header Elements
+  roleBadge: document.getElementById('roleBadge'),
+  roleDisplayName: document.getElementById('roleDisplayName'),
+  activeStoreNameDisplay: document.getElementById('activeStoreNameDisplay'),
+  activeStoreSelect: document.getElementById('activeStoreSelect'),
+  adminManageStoresBtn: document.getElementById('adminManageStoresBtn'),
+  userMenuBtn: document.getElementById('userMenuBtn'),
+  userMenuDropdown: document.getElementById('userMenuDropdown'),
+  dropdownUserRole: document.getElementById('dropdownUserRole'),
+  dropdownUserDetail: document.getElementById('dropdownUserDetail'),
+  openCreateStoreBtnHeader: document.getElementById('openCreateStoreBtnHeader'),
+  resetStoreDataBtn: document.getElementById('resetStoreDataBtn'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  openAddAssetBtn: document.getElementById('openAddAssetBtn'),
+
+  // Admin Store Manager Modal
+  adminStoreManagerModal: document.getElementById('adminStoreManagerModal'),
+  closeAdminStoreManagerModalBtn: document.getElementById('closeAdminStoreManagerModalBtn'),
+  adminCreateNewStoreBtn: document.getElementById('adminCreateNewStoreBtn'),
+  adminStoreTableBody: document.getElementById('adminStoreTableBody'),
+
+  // Store Credentials Form Modal
   storeModal: document.getElementById('storeModal'),
+  storeModalTitle: document.getElementById('storeModalTitle'),
   storeForm: document.getElementById('storeForm'),
+  editStoreOriginalCode: document.getElementById('editStoreOriginalCode'),
   newStoreCode: document.getElementById('newStoreCode'),
   newStoreName: document.getElementById('newStoreName'),
   newStorePassword: document.getElementById('newStorePassword'),
+  seedOptionContainer: document.getElementById('seedOptionContainer'),
   newStoreSeedOption: document.getElementById('newStoreSeedOption'),
   storeFormError: document.getElementById('storeFormError'),
   storeFormErrorText: document.getElementById('storeFormErrorText'),
   closeStoreModalBtn: document.getElementById('closeStoreModalBtn'),
   cancelStoreModalBtn: document.getElementById('cancelStoreModalBtn'),
-  
-  // Header Elements
-  activeStoreCodeDisplay: document.getElementById('activeStoreCodeDisplay'),
-  activeStoreNameDisplay: document.getElementById('activeStoreNameDisplay'),
-  dropdownStoreCode: document.getElementById('dropdownStoreCode'),
-  userMenuBtn: document.getElementById('userMenuBtn'),
-  userMenuDropdown: document.getElementById('userMenuDropdown'),
-  switchStoreBtn: document.getElementById('switchStoreBtn'),
-  resetStoreDataBtn: document.getElementById('resetStoreDataBtn'),
-  logoutBtn: document.getElementById('logoutBtn'),
-  openAddAssetBtn: document.getElementById('openAddAssetBtn'),
 
   // Dashboard Stats
   statTotalCount: document.getElementById('statTotalCount'),
@@ -505,7 +575,9 @@ const DOM = {
   historyModalAssetStatus: document.getElementById('historyModalAssetStatus'),
   historyModalAssetMeta: document.getElementById('historyModalAssetMeta'),
   closeHistoryModalBtn: document.getElementById('closeHistoryModalBtn'),
+  logFormWrapper: document.getElementById('logFormWrapper'),
   toggleNewLogFormBtn: document.getElementById('toggleNewLogFormBtn'),
+  logPermissionNotice: document.getElementById('logPermissionNotice'),
   newLogForm: document.getElementById('newLogForm'),
   logFormAssetId: document.getElementById('logFormAssetId'),
   logFormDate: document.getElementById('logFormDate'),
@@ -527,26 +599,46 @@ const DOM = {
 
 
 // ==========================================
-// 5. AUTHENTICATION & STORE MANAGEMENT LOGIC
+// 5. AUTHENTICATION & ROLE MANAGEMENT LOGIC
 // ==========================================
+
+function switchLoginTab(mode) {
+  AppState.loginMode = mode;
+  DOM.loginError.classList.add('hidden');
+  DOM.loginForm.reset();
+
+  if (mode === 'store') {
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1.5';
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-indigo-400 mr-1.5"></i> Store Code`;
+    DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
+    DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
+  } else {
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md transition-all flex items-center justify-center gap-1.5';
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1.5"></i> Admin Username`;
+    DOM.loginStoreCode.placeholder = 'e.g. admin1, admin2, admin3';
+    DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
+  }
+}
 
 function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
   DOM.storeListContainer.innerHTML = stores.map(s => `
-    <button type="button" class="demo-login-btn p-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}" data-pass="${escapeHTML(s.password)}">
+    <button type="button" class="demo-login-btn p-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}" data-pass="${escapeHTML(s.password)}">
       <span class="flex items-center gap-2">
         <i class="fa-solid fa-store text-indigo-400"></i>
         <strong class="text-white font-mono">${escapeHTML(s.code)}</strong> 
-        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[140px]">(${escapeHTML(s.name)})</span>
+        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[130px]">(${escapeHTML(s.name)})</span>
       </span>
       <span class="text-[10px] text-slate-500 font-mono">pass: ${escapeHTML(s.password)}</span>
     </button>
   `).join('');
 
-  // Re-attach quick login click handlers
   DOM.storeListContainer.querySelectorAll('.demo-login-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      switchLoginTab('store');
       const code = btn.getAttribute('data-code');
       const pass = btn.getAttribute('data-pass');
       DOM.loginStoreCode.value = code;
@@ -556,10 +648,231 @@ function renderStoreAccountsList() {
   });
 }
 
+function handleLogin(inputCodeOrUsername, password) {
+  const cleanInput = inputCodeOrUsername.trim();
+  const cleanPass = password.trim();
+
+  // 1. Check if trying Admin Login
+  const matchedAdmin = DEFAULT_ADMINS.find(a => 
+    a.username.toLowerCase() === cleanInput.toLowerCase() && a.password === cleanPass
+  );
+
+  if (matchedAdmin) {
+    AppState.currentUser = {
+      role: 'admin',
+      username: matchedAdmin.username,
+      name: matchedAdmin.name
+    };
+    localStorage.setItem('ams_user_session', JSON.stringify(AppState.currentUser));
+    DOM.loginError.classList.add('hidden');
+    loadUserSession();
+    showToast(`Logged in as Administrator (${matchedAdmin.username})`, 'success');
+    return;
+  }
+
+  // 2. Check Store Account Login
+  const stores = StorageManager.getStores();
+  const matchedStore = stores.find(s => 
+    s.code.toUpperCase() === cleanInput.toUpperCase() && s.password === cleanPass
+  );
+
+  if (matchedStore) {
+    AppState.currentUser = {
+      role: 'store',
+      storeCode: matchedStore.code,
+      name: matchedStore.name
+    };
+    StorageManager.setActiveStoreCode(matchedStore.code);
+    localStorage.setItem('ams_user_session', JSON.stringify(AppState.currentUser));
+    DOM.loginError.classList.add('hidden');
+    loadUserSession();
+    showToast(`Logged in successfully to store ${matchedStore.code}`, 'success');
+    return;
+  }
+
+  // Login Failed
+  DOM.loginError.classList.remove('hidden');
+  DOM.loginErrorText.textContent = AppState.loginMode === 'admin' 
+    ? 'Invalid Admin Username or Password.' 
+    : 'Invalid Store Code or Password.';
+}
+
+function handleLogout() {
+  AppState.currentUser = null;
+  AppState.activeStore = null;
+  localStorage.removeItem('ams_user_session');
+  StorageManager.setActiveStoreCode(null);
+
+  DOM.appSection.classList.add('hidden');
+  DOM.appSection.classList.remove('flex');
+  DOM.loginSection.classList.remove('hidden');
+  DOM.userMenuDropdown.classList.add('hidden');
+  renderStoreAccountsList();
+  showToast('Logged out of session.', 'info');
+}
+
+function loadUserSession() {
+  let savedSession = null;
+  try {
+    savedSession = JSON.parse(localStorage.getItem('ams_user_session'));
+  } catch (e) {}
+
+  if (!savedSession) {
+    DOM.loginSection.classList.remove('hidden');
+    DOM.appSection.classList.add('hidden');
+    DOM.appSection.classList.remove('flex');
+    renderStoreAccountsList();
+    return;
+  }
+
+  AppState.currentUser = savedSession;
+  const stores = StorageManager.getStores();
+
+  // Configure UI based on Role
+  if (savedSession.role === 'admin') {
+    // Admin Role Configuration
+    DOM.roleBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono';
+    DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
+    DOM.adminManageStoresBtn.classList.remove('hidden');
+    DOM.adminManageStoresBtn.classList.add('flex');
+    DOM.openCreateStoreBtnHeader.classList.remove('hidden');
+    DOM.dropdownUserRole.textContent = `Role: System Administrator`;
+    DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
+
+    // Admin default active store selection
+    let activeCode = StorageManager.getActiveStoreCode() || (stores[0] ? stores[0].code : 'STORE-01');
+    let storeObj = stores.find(s => s.code === activeCode) || stores[0] || { code: 'STORE-01', name: 'Downtown Branch Store' };
+    AppState.activeStore = storeObj;
+    StorageManager.setActiveStoreCode(storeObj.code);
+  } else {
+    // Store Role Configuration
+    DOM.roleBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono';
+    DOM.roleDisplayName.textContent = `STORE • ${savedSession.storeCode}`;
+    DOM.adminManageStoresBtn.classList.add('hidden');
+    DOM.adminManageStoresBtn.classList.remove('flex');
+    DOM.openCreateStoreBtnHeader.classList.add('hidden');
+    DOM.dropdownUserRole.textContent = `Role: Store User`;
+    DOM.dropdownUserDetail.textContent = `Store Code: ${savedSession.storeCode}`;
+
+    let storeObj = stores.find(s => s.code === savedSession.storeCode) || { code: savedSession.storeCode, name: savedSession.name };
+    AppState.activeStore = storeObj;
+    StorageManager.setActiveStoreCode(storeObj.code);
+  }
+
+  // Populate Header Store Selector Dropdown
+  renderHeaderStoreSelector();
+
+  // Load Data & Render
+  AppState.assets = StorageManager.getAssets(AppState.activeStore.code);
+  AppState.logs = StorageManager.getLogs(AppState.activeStore.code);
+  DOM.activeStoreNameDisplay.textContent = AppState.activeStore.name;
+
+  // Show Workspace View
+  DOM.loginSection.classList.add('hidden');
+  DOM.appSection.classList.remove('hidden');
+  DOM.appSection.classList.add('flex');
+
+  refreshAppUI();
+}
+
+function renderHeaderStoreSelector() {
+  const stores = StorageManager.getStores();
+  const isAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+
+  if (isAdmin) {
+    DOM.activeStoreSelect.disabled = false;
+    DOM.activeStoreSelect.innerHTML = stores.map(s => 
+      `<option value="${s.code}" ${s.code === AppState.activeStore.code ? 'selected' : ''}>${s.code} (${s.name})</option>`
+    ).join('');
+  } else {
+    DOM.activeStoreSelect.disabled = true;
+    DOM.activeStoreSelect.innerHTML = `<option value="${AppState.activeStore.code}">${AppState.activeStore.code}</option>`;
+  }
+}
+
+
+// ==========================================
+// 6. ADMIN STORE MANAGEMENT CONSOLE
+// ==========================================
+
+function openAdminStoreManagerModal() {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Admin accounts can access Store Management.', 'error');
+    return;
+  }
+
+  renderAdminStoreTable();
+  DOM.adminStoreManagerModal.classList.remove('hidden');
+  DOM.adminStoreManagerModal.classList.add('flex');
+  DOM.adminStoreManagerModal.style.display = 'flex';
+}
+
+function closeAdminStoreManagerModal() {
+  DOM.adminStoreManagerModal.classList.add('hidden');
+  DOM.adminStoreManagerModal.classList.remove('flex');
+  DOM.adminStoreManagerModal.style.display = 'none';
+}
+
+function renderAdminStoreTable() {
+  const stores = StorageManager.getStores();
+
+  DOM.adminStoreTableBody.innerHTML = stores.map(s => `
+    <tr class="hover:bg-slate-900/60 transition-colors border-b border-slate-800">
+      <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
+      <td class="py-3 px-4 text-white font-medium">${escapeHTML(s.name)}</td>
+      <td class="py-3 px-4 font-mono text-slate-300">
+        <span class="bg-slate-900 px-2 py-1 rounded border border-slate-800">${escapeHTML(s.password)}</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <button onclick="openEditStoreModal('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg text-xs flex items-center gap-1">
+            <i class="fa-solid fa-key text-[10px]"></i> Edit Credentials
+          </button>
+          <button onclick="confirmDeleteStore('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs flex items-center gap-1">
+            <i class="fa-solid fa-trash text-[10px]"></i> Delete
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
 function openCreateStoreModal() {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Admin accounts can create stores.', 'error');
+    return;
+  }
+
   DOM.storeForm.reset();
+  DOM.editStoreOriginalCode.value = '';
+  DOM.storeModalTitle.textContent = 'Register New Store Account (Admin Only)';
+  DOM.seedOptionContainer.classList.remove('hidden');
   DOM.storeFormError.classList.add('hidden');
   DOM.userMenuDropdown.classList.add('hidden');
+  
+  DOM.storeModal.classList.remove('hidden');
+  DOM.storeModal.classList.add('flex');
+  DOM.storeModal.style.display = 'flex';
+}
+
+function openEditStoreModal(storeCode) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Admin accounts can edit store credentials.', 'error');
+    return;
+  }
+
+  const stores = StorageManager.getStores();
+  const store = stores.find(s => s.code === storeCode);
+  if (!store) return;
+
+  DOM.editStoreOriginalCode.value = store.code;
+  DOM.newStoreCode.value = store.code;
+  DOM.newStoreName.value = store.name;
+  DOM.newStorePassword.value = store.password;
+  DOM.seedOptionContainer.classList.add('hidden');
+  DOM.storeFormError.classList.add('hidden');
+  DOM.storeModalTitle.textContent = `Edit Store Credentials (${store.code})`;
+
   DOM.storeModal.classList.remove('hidden');
   DOM.storeModal.classList.add('flex');
   DOM.storeModal.style.display = 'flex';
@@ -574,12 +887,24 @@ function closeCreateStoreModal() {
 function handleStoreFormSubmit(e) {
   e.preventDefault();
 
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Admin rights required.', 'error');
+    return;
+  }
+
+  const originalCode = DOM.editStoreOriginalCode.value;
+  const isEditing = Boolean(originalCode);
   const code = DOM.newStoreCode.value;
   const name = DOM.newStoreName.value;
   const pass = DOM.newStorePassword.value;
   const seedOption = DOM.newStoreSeedOption.value;
 
-  const result = StorageManager.addStore(code, name, pass, seedOption);
+  let result;
+  if (isEditing) {
+    result = StorageManager.updateStoreCredentials(originalCode, code, name, pass);
+  } else {
+    result = StorageManager.addStore(code, name, pass, seedOption);
+  }
 
   if (!result.success) {
     DOM.storeFormErrorText.textContent = result.message;
@@ -589,75 +914,38 @@ function handleStoreFormSubmit(e) {
 
   DOM.storeFormError.classList.add('hidden');
   closeCreateStoreModal();
+
   renderStoreAccountsList();
+  renderAdminStoreTable();
+  renderHeaderStoreSelector();
 
-  showToast(`Store account "${result.store.code}" created & synced to Supabase!`, 'success');
+  showToast(`Store credentials for "${result.store.code}" saved & synced to Supabase!`, 'success');
 }
 
-function handleLogin(storeCode, password) {
-  const stores = StorageManager.getStores();
-  const matchedStore = stores.find(s => s.code.toUpperCase() === storeCode.trim().toUpperCase() && s.password === password);
-
-  if (matchedStore) {
-    AppState.activeStore = matchedStore;
-    StorageManager.setActiveStoreCode(matchedStore.code);
-    DOM.loginError.classList.add('hidden');
-    loadStoreSession();
-    showToast(`Logged in successfully as ${matchedStore.code}`, 'success');
-  } else {
-    DOM.loginError.classList.remove('hidden');
-    DOM.loginErrorText.textContent = 'Invalid Store Code or Password.';
-  }
-}
-
-function handleLogout() {
-  AppState.activeStore = null;
-  StorageManager.setActiveStoreCode(null);
-  DOM.appSection.classList.add('hidden');
-  DOM.appSection.classList.remove('flex');
-  DOM.loginSection.classList.remove('hidden');
-  DOM.userMenuDropdown.classList.add('hidden');
-  renderStoreAccountsList();
-  showToast('Logged out of store session.', 'info');
-}
-
-function loadStoreSession() {
-  const activeCode = StorageManager.getActiveStoreCode();
-  if (!activeCode) {
-    DOM.loginSection.classList.remove('hidden');
-    DOM.appSection.classList.add('hidden');
-    DOM.appSection.classList.remove('flex');
-    renderStoreAccountsList();
+function confirmDeleteStore(storeCode) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Admin rights required.', 'error');
     return;
   }
 
   const stores = StorageManager.getStores();
-  let storeObj = stores.find(s => s.code === activeCode);
-  if (!storeObj) {
-    storeObj = { code: activeCode, name: `${activeCode} Branch`, password: '123' };
+  if (stores.length <= 1) {
+    alert('Cannot delete the last remaining store account.');
+    return;
   }
 
-  AppState.activeStore = storeObj;
-  AppState.assets = StorageManager.getAssets(activeCode);
-  AppState.logs = StorageManager.getLogs(activeCode);
-
-  // Update Header UI
-  DOM.activeStoreCodeDisplay.textContent = storeObj.code;
-  DOM.activeStoreNameDisplay.textContent = storeObj.name;
-  DOM.dropdownStoreCode.textContent = storeObj.code;
-
-  // Show Workspace View
-  DOM.loginSection.classList.add('hidden');
-  DOM.appSection.classList.remove('hidden');
-  DOM.appSection.classList.add('flex');
-
-  // Render Core UI components
-  refreshAppUI();
+  if (confirm(`Are you sure you want to delete store account "${storeCode}"? This will delete all associated asset data.`)) {
+    StorageManager.deleteStore(storeCode);
+    renderStoreAccountsList();
+    renderAdminStoreTable();
+    renderHeaderStoreSelector();
+    showToast(`Store "${storeCode}" deleted.`, 'info');
+  }
 }
 
 
 // ==========================================
-// 6. RENDERING ENGINE & COMPUTATIONS
+// 7. RENDERING ENGINE & COMPUTATIONS
 // ==========================================
 
 function refreshAppUI() {
@@ -777,8 +1065,8 @@ function renderTableView(assets) {
         </td>
         <td class="py-3.5 px-4 text-right">
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors" title="View Maintenance History">
-              <i class="fa-solid fa-history text-xs"></i>
+            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors" title="View Maintenance History & Comments">
+              <i class="fa-solid fa-comments text-xs"></i>
             </button>
             <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Edit Asset">
               <i class="fa-solid fa-pen-to-square text-xs"></i>
@@ -832,7 +1120,7 @@ function renderCardView(assets) {
 
             <div class="flex items-center gap-1">
               <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
-                <i class="fa-solid fa-history text-[10px]"></i> History
+                <i class="fa-solid fa-comments text-[10px]"></i> History
               </button>
               <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
                 <i class="fa-solid fa-pen text-xs"></i>
@@ -860,7 +1148,7 @@ function getStatusBadgeHTML(status) {
 
 
 // ==========================================
-// 7. ASSET CRUD MODAL HANDLERS
+// 8. ASSET CRUD MODAL HANDLERS
 // ==========================================
 
 function updateAssetFormPreview(url) {
@@ -880,7 +1168,6 @@ function openAddAssetModal() {
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   updateAssetFormPreview('');
   
-  // Show modal explicitly
   DOM.assetModal.classList.remove('hidden');
   DOM.assetModal.classList.add('flex');
   DOM.assetModal.style.display = 'flex';
@@ -905,7 +1192,6 @@ function openEditAssetModal(assetId) {
   updateAssetFormPreview(asset.imageUrl || '');
   DOM.assetModalTitle.textContent = `Edit Asset (${asset.id})`;
 
-  // Show modal explicitly
   DOM.assetModal.classList.remove('hidden');
   DOM.assetModal.classList.add('flex');
   DOM.assetModal.style.display = 'flex';
@@ -950,10 +1236,8 @@ function handleAssetFormSubmit(e) {
     showToast(`Asset "${assetData.name}" added successfully!`, 'success');
   }
 
-  // 1. Save to LocalStorage & Supabase
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
-  // 2. Automatically reset search & filters so user IMMEDIATELY sees their newly saved asset!
   AppState.searchQuery = '';
   AppState.statusFilter = 'ALL';
   AppState.categoryFilter = 'ALL';
@@ -965,10 +1249,7 @@ function handleAssetFormSubmit(e) {
     if (btn.getAttribute('data-status') === 'ALL') btn.classList.add('active');
   });
 
-  // 3. Close modal forcefully
   closeAssetModal();
-
-  // 4. Instantly re-render full UI (dashboard stats & asset table/grid)
   refreshAppUI();
 }
 
@@ -978,7 +1259,6 @@ function confirmDeleteAsset(assetId) {
 
   if (confirm(`Are you sure you want to delete asset "${asset.name}" (${asset.serial})?`)) {
     AppState.assets = AppState.assets.filter(a => a.id !== assetId);
-    // Also remove associated maintenance logs
     AppState.logs = AppState.logs.filter(l => l.assetId !== assetId);
 
     StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
@@ -997,8 +1277,18 @@ function confirmDeleteAsset(assetId) {
 
 
 // ==========================================
-// 8. MAINTENANCE HISTORY LOG TIMELINE MODAL
+// 9. MAINTENANCE LOG & COMMENT AUTHORIZATION
 // ==========================================
+
+function canUserAddComment(storeCode) {
+  if (!AppState.currentUser) return false;
+  // 1. Admin accounts can add comments to ANY store
+  if (AppState.currentUser.role === 'admin') return true;
+  // 2. Specific Store account assigned to that store can add comments
+  if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
+  // 3. Otherwise unauthorized
+  return false;
+}
 
 function updateLogFormPreview(url) {
   if (url) {
@@ -1021,12 +1311,24 @@ function openHistoryModal(assetId) {
   DOM.historyModalAssetStatus.textContent = asset.status;
   DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
 
-  // Form default hidden
+  // Check Comment Authorization
+  const isAuthorizedToComment = canUserAddComment(AppState.activeStore.code);
+
+  if (isAuthorizedToComment) {
+    DOM.toggleNewLogFormBtn.classList.remove('hidden');
+    DOM.logPermissionNotice.classList.add('hidden');
+  } else {
+    DOM.toggleNewLogFormBtn.classList.add('hidden');
+    DOM.logPermissionNotice.classList.remove('hidden');
+    DOM.newLogForm.classList.add('hidden');
+  }
+
+  // Reset Log Form
   DOM.newLogForm.classList.add('hidden');
   DOM.logFormAssetId.value = asset.id;
   DOM.logFormDate.value = new Date().toISOString().split('T')[0];
   DOM.logFormNewStatus.value = asset.status;
-  DOM.logFormTechnician.value = '';
+  DOM.logFormTechnician.value = AppState.currentUser.role === 'admin' ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`;
   DOM.logFormCost.value = '';
   DOM.logFormImage.value = '';
   DOM.logFormFileInput.value = '';
@@ -1078,11 +1380,11 @@ function renderTimelineLogs(assetId) {
           </div>
 
           <div class="text-xs text-slate-300 flex items-center gap-2">
-            <span class="text-slate-400">Technician:</span>
+            <span class="text-slate-400">Author / Tech:</span>
             <strong class="text-indigo-300">${escapeHTML(log.technician || 'N/A')}</strong>
           </div>
 
-          <div class="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 mt-2">
+          <div class="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 mt-2 whitespace-pre-line">
             ${escapeHTML(log.notes)}
           </div>
 
@@ -1102,6 +1404,12 @@ function renderTimelineLogs(assetId) {
 
 function handleNewLogSubmit(e) {
   e.preventDefault();
+
+  if (!canUserAddComment(AppState.activeStore.code)) {
+    showToast('Unauthorized: Only Admins or the assigned Store account can add comments.', 'error');
+    return;
+  }
+
   const assetId = DOM.logFormAssetId.value;
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
@@ -1113,7 +1421,7 @@ function handleNewLogSubmit(e) {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
     assetId: asset.id,
     date: serviceDate,
-    technician: DOM.logFormTechnician.value.trim() || 'Internal Servicing',
+    technician: DOM.logFormTechnician.value.trim() || (AppState.currentUser.role === 'admin' ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`),
     statusBefore: asset.status,
     statusAfter: newStatus,
     cost: parseFloat(DOM.logFormCost.value) || 0,
@@ -1121,33 +1429,29 @@ function handleNewLogSubmit(e) {
     notes: DOM.logFormNotes.value.trim()
   };
 
-  // Add to logs state
   AppState.logs.unshift(logEntry);
   StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
-  // Update asset status and lastMaintenance date
   asset.status = newStatus;
   asset.lastMaintenance = serviceDate;
   asset.updatedAt = new Date().toISOString();
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
-  // Refresh UI
   DOM.newLogForm.classList.add('hidden');
   renderTimelineLogs(asset.id);
   refreshAppUI();
 
-  // Update Modal Header Badge
   DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
     asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
   }`;
   DOM.historyModalAssetStatus.textContent = asset.status;
 
-  showToast('Maintenance log recorded & synced!', 'success');
+  showToast('Comment / Service Log entry recorded & synced!', 'success');
 }
 
 
 // ==========================================
-// 9. TOAST NOTIFICATIONS & UTILITIES
+// 10. TOAST NOTIFICATIONS & UTILITIES
 // ==========================================
 
 function showToast(message, type = 'info') {
@@ -1188,18 +1492,55 @@ function escapeHTML(str) {
 
 
 // ==========================================
-// 10. EVENT LISTENERS INITIALIZATION
+// 11. EVENT LISTENERS INITIALIZATION
 // ==========================================
 
 function initEventListeners() {
+  // Login Tab Switching
+  DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
+  DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
+
+  // Admin Quick Fill Buttons
+  document.querySelectorAll('.admin-demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchLoginTab('admin');
+      const user = btn.getAttribute('data-user');
+      const pass = btn.getAttribute('data-pass');
+      DOM.loginStoreCode.value = user;
+      DOM.loginPassword.value = pass;
+      handleLogin(user, pass);
+    });
+  });
+
   // Login Form Submit
   DOM.loginForm.addEventListener('submit', e => {
     e.preventDefault();
     handleLogin(DOM.loginStoreCode.value, DOM.loginPassword.value);
   });
 
-  // Store Creation Modal Events
-  DOM.openCreateStoreBtnLogin.addEventListener('click', openCreateStoreModal);
+  // Header Store Switcher Dropdown
+  DOM.activeStoreSelect.addEventListener('change', e => {
+    const selectedCode = e.target.value;
+    const stores = StorageManager.getStores();
+    const storeObj = stores.find(s => s.code === selectedCode);
+    if (storeObj) {
+      AppState.activeStore = storeObj;
+      StorageManager.setActiveStoreCode(storeObj.code);
+      AppState.assets = StorageManager.getAssets(storeObj.code);
+      AppState.logs = StorageManager.getLogs(storeObj.code);
+      DOM.activeStoreNameDisplay.textContent = storeObj.name;
+      refreshAppUI();
+      showToast(`Switched active store view to ${storeObj.code}`, 'info');
+    }
+  });
+
+  // Admin Console & Store Modals
+  DOM.adminManageStoresBtn.addEventListener('click', openAdminStoreManagerModal);
+  DOM.closeAdminStoreManagerModalBtn.addEventListener('click', closeAdminStoreManagerModal);
+  DOM.adminCreateNewStoreBtn.addEventListener('click', () => {
+    closeAdminStoreManagerModal();
+    openCreateStoreModal();
+  });
   DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
   DOM.closeStoreModalBtn.addEventListener('click', closeCreateStoreModal);
   DOM.cancelStoreModalBtn.addEventListener('click', closeCreateStoreModal);
@@ -1219,11 +1560,10 @@ function initEventListeners() {
 
   // Header Actions
   DOM.logoutBtn.addEventListener('click', handleLogout);
-  DOM.switchStoreBtn.addEventListener('click', handleLogout);
   DOM.resetStoreDataBtn.addEventListener('click', () => {
     if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
       StorageManager.resetStoreData(AppState.activeStore.code);
-      loadStoreSession();
+      loadUserSession();
       DOM.userMenuDropdown.classList.add('hidden');
       showToast('Store data reset to demo defaults.', 'info');
     }
@@ -1239,7 +1579,7 @@ function initEventListeners() {
   DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
 
   // Backdrop overlay click closes modals
-  [DOM.assetModal, DOM.historyModal, DOM.storeModal].forEach(modal => {
+  [DOM.adminStoreManagerModal, DOM.storeModal, DOM.assetModal, DOM.historyModal].forEach(modal => {
     modal.addEventListener('click', e => {
       if (e.target === modal) {
         modal.classList.add('hidden');
@@ -1252,9 +1592,10 @@ function initEventListeners() {
   // ESC key closes any open modal
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      closeAdminStoreManagerModal();
+      closeCreateStoreModal();
       closeAssetModal();
       closeHistoryModal();
-      closeCreateStoreModal();
     }
   });
 
@@ -1362,14 +1703,16 @@ function initEventListeners() {
   });
 }
 
-// Global functions exposed for inline onclick handlers in dynamically generated HTML
+// Global functions exposed for inline onclick handlers
 window.openHistoryModal = openHistoryModal;
 window.openEditAssetModal = openEditAssetModal;
 window.confirmDeleteAsset = confirmDeleteAsset;
+window.openEditStoreModal = openEditStoreModal;
+window.confirmDeleteStore = confirmDeleteStore;
 
 // Bootstrap Application
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   renderStoreAccountsList();
-  loadStoreSession();
+  loadUserSession();
 });
