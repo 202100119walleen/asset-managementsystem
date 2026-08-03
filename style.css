@@ -1,39 +1,41 @@
-/* Store Asset Management System Custom Styles */
+/* Store Asset Management System - Minimalist Enterprise Style Sheet */
 
-/* Radial background gradient for login screen */
+/* Minimalist Obsidian background gradient for login screen */
 .bg-radial-gradient {
-  background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 100%);
+  background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 100%);
 }
 
-/* Custom Scrollbar styling */
+/* Custom Minimalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #27272a;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #3f3f46;
 }
 
 /* Modal animation */
 #assetModal > div,
-#historyModal > div {
-  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+#historyModal > div,
+#storeModal > div,
+#adminStoreManagerModal > div {
+  animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes modalSlideUp {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    transform: translateY(8px) scale(0.99);
   }
   to {
     opacity: 1;
@@ -43,13 +45,13 @@
 
 /* Toast entrance animation */
 .toast-item {
-  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(16px);
   }
   to {
     opacity: 1;
@@ -57,30 +59,30 @@
   }
 }
 
-/* Active tab styling */
+/* Minimalist Active Tab Button Styling */
 .status-tab-btn.active {
-  background-color: #4f46e5 !important;
+  background-color: #27272a !important;
+  border: 1px solid #3f3f46 !important;
   color: #ffffff !important;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
-/* Status Badge Styles */
+/* Minimalist Status Badge Styles */
 .badge-good {
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: #34d399;
 }
 
 .badge-maintenance {
-  background-color: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   color: #fbbf24;
 }
 
 .badge-oos {
-  background-color: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  background-color: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.25);
   color: #fb7185;
 }
 
@@ -90,7 +92,7 @@
 }
 
 #assetTableBody tr:hover {
-  background-color: rgba(30, 41, 59, 0.5);
+  background-color: rgba(39, 39, 42, 0.4);
 }
 
 /* Timeline dot styling */
@@ -101,8 +103,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background-color: #0f172a;
-  border: 2px solid #6366f1;
+  background-color: #09090b;
+  border: 2px solid #a1a1aa;
 }
 
 .timeline-dot.good {

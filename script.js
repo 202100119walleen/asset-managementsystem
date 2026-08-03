@@ -607,17 +607,17 @@ function switchLoginTab(mode) {
   DOM.loginForm.reset();
 
   if (mode === 'store') {
-    DOM.tabStoreLogin.className = 'flex-1 py-2.5 rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-2';
-    DOM.tabAdminLogin.className = 'flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2';
-    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-indigo-400 mr-1.5"></i> Store Code`;
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg bg-zinc-800 text-white shadow-sm transition-all flex items-center justify-center gap-2';
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2';
+    DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-store text-zinc-400 mr-1.5"></i> Store Code`;
     DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
     DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
 
     if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.add('hidden');
     if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   } else {
-    DOM.tabAdminLogin.className = 'flex-1 py-2.5 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md transition-all flex items-center justify-center gap-2';
-    DOM.tabStoreLogin.className = 'flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2';
+    DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-sm transition-all flex items-center justify-center gap-2';
+    DOM.tabStoreLogin.className = 'flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2';
     DOM.loginLabelCode.innerHTML = `<i class="fa-solid fa-user-shield text-amber-400 mr-1.5"></i> Admin Username`;
     DOM.loginStoreCode.placeholder = 'e.g. admin1, admin2, admin3';
     DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
@@ -631,13 +631,13 @@ function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
   DOM.storeListContainer.innerHTML = stores.map(s => `
-    <button type="button" class="demo-login-btn p-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl text-left flex items-center justify-between text-slate-300 transition-colors" data-code="${escapeHTML(s.code)}">
+    <button type="button" class="demo-login-btn p-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-left flex items-center justify-between text-zinc-300 transition-colors" data-code="${escapeHTML(s.code)}">
       <span class="flex items-center gap-2">
-        <i class="fa-solid fa-store text-indigo-400 text-sm"></i>
+        <i class="fa-solid fa-store text-zinc-400 text-sm"></i>
         <strong class="text-white font-mono">${escapeHTML(s.code)}</strong> 
-        <span class="text-slate-400 text-[11px] font-normal truncate max-w-[160px]">(${escapeHTML(s.name)})</span>
+        <span class="text-zinc-400 text-[11px] font-normal truncate max-w-[160px]">(${escapeHTML(s.name)})</span>
       </span>
-      <span class="text-[10px] text-indigo-400 font-medium">Select &rarr;</span>
+      <span class="text-[10px] text-zinc-400 font-medium">Select &rarr;</span>
     </button>
   `).join('');
 
@@ -740,7 +740,7 @@ function loadUserSession() {
   // Configure UI based on Role
   if (savedSession.role === 'admin') {
     // Admin Role Configuration
-    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono';
+    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono';
     DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
     if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.remove('hidden');
     if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.remove('hidden');
@@ -754,7 +754,7 @@ function loadUserSession() {
     StorageManager.setActiveStoreCode(storeObj.code);
   } else {
     // Store Role Configuration
-    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono';
+    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono';
     DOM.roleDisplayName.textContent = `STORE • ${savedSession.storeCode}`;
     if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.add('hidden');
     if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.add('hidden');
@@ -824,14 +824,14 @@ function renderAdminStoreTable() {
   const stores = StorageManager.getStores();
 
   DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => `
-    <tr class="hover:bg-slate-900/60 transition-colors border-b border-slate-800">
+    <tr class="hover:bg-zinc-900/80 transition-colors border-b border-zinc-800">
       <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
       <td class="py-3 px-4 text-white font-medium">${escapeHTML(s.name)}</td>
-      <td class="py-3 px-4 font-mono text-slate-300">
-        <div class="inline-flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+      <td class="py-3 px-4 font-mono text-zinc-300">
+        <div class="inline-flex items-center gap-2 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
           <span id="storePwdMask_${idx}">••••••••</span>
           <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
-          <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-slate-500 hover:text-white ml-1">
+          <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-zinc-500 hover:text-white ml-1">
             <i id="pwdEye_${idx}" class="fa-solid fa-eye text-xs"></i>
           </button>
         </div>
@@ -862,7 +862,7 @@ function toggleStorePasswordVisibility(idx) {
   } else {
     realSpan.classList.add('hidden');
     maskSpan.classList.remove('hidden');
-    eyeIcon.className = 'fa-solid fa-eye text-xs text-slate-500';
+    eyeIcon.className = 'fa-solid fa-eye text-xs text-zinc-500';
   }
 }
 
@@ -1063,41 +1063,41 @@ function renderTableView(assets) {
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset.status);
     const thumbnail = asset.imageUrl 
-      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-slate-800 border border-slate-700">`
-      : `<div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500"><i class="fa-solid fa-box text-sm"></i></div>`;
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700">`
+      : `<div class="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500"><i class="fa-solid fa-box text-sm"></i></div>`;
 
     return `
-      <tr class="border-b border-slate-800/60">
+      <tr class="border-b border-zinc-800/80">
         <td class="py-3.5 px-4">
           <div class="flex items-center gap-3">
             ${thumbnail}
             <div>
               <p class="font-bold text-white leading-snug">${escapeHTML(asset.name)}</p>
-              <p class="text-xs text-slate-400 font-mono">${escapeHTML(asset.id)}</p>
+              <p class="text-xs text-zinc-400 font-mono">${escapeHTML(asset.id)}</p>
             </div>
           </div>
         </td>
-        <td class="py-3.5 px-4 text-xs font-medium text-slate-300">
+        <td class="py-3.5 px-4 text-xs font-medium text-zinc-300">
           ${escapeHTML(asset.category)}
         </td>
-        <td class="py-3.5 px-4 text-xs font-mono text-slate-400">
+        <td class="py-3.5 px-4 text-xs font-mono text-zinc-400">
           ${escapeHTML(asset.serial)}
         </td>
-        <td class="py-3.5 px-4 text-xs text-slate-300">
-          <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
+        <td class="py-3.5 px-4 text-xs text-zinc-300">
+          <i class="fa-solid fa-location-dot text-[10px] text-zinc-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
         </td>
         <td class="py-3.5 px-4">
           ${statusBadge}
         </td>
-        <td class="py-3.5 px-4 text-xs font-mono text-slate-400">
-          ${asset.lastMaintenance ? asset.lastMaintenance : '<span class="text-slate-600">Never</span>'}
+        <td class="py-3.5 px-4 text-xs font-mono text-zinc-400">
+          ${asset.lastMaintenance ? asset.lastMaintenance : '<span class="text-zinc-600">Never</span>'}
         </td>
         <td class="py-3.5 px-4 text-right">
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors" title="View Maintenance History & Comments">
+            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors" title="View Maintenance History & Comments">
               <i class="fa-solid fa-comments text-xs"></i>
             </button>
-            <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="Edit Asset">
+            <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors" title="Edit Asset">
               <i class="fa-solid fa-pen-to-square text-xs"></i>
             </button>
             <button onclick="confirmDeleteAsset('${asset.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Asset">
@@ -1114,17 +1114,17 @@ function renderCardView(assets) {
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset.status);
     const thumbnail = asset.imageUrl 
-      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-slate-800">`
-      : `<div class="w-full h-40 bg-slate-800/80 flex items-center justify-center text-slate-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-zinc-800">`
+      : `<div class="w-full h-40 bg-zinc-800/80 flex items-center justify-center text-zinc-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
 
     return `
-      <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl overflow-hidden shadow-xl flex flex-col hover:border-slate-700 transition-all">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col hover:border-zinc-700 transition-all">
         <div class="relative">
           ${thumbnail}
           <div class="absolute top-3 right-3">
             ${statusBadge}
           </div>
-          <div class="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300">
+          <div class="absolute bottom-3 left-3 bg-zinc-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-zinc-800 text-[10px] font-mono text-zinc-300">
             ${escapeHTML(asset.serial)}
           </div>
         </div>
@@ -1132,26 +1132,26 @@ function renderCardView(assets) {
         <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
           <div>
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">${escapeHTML(asset.category)}</span>
-              <span class="text-xs font-mono text-slate-400 font-semibold">$${(asset.value || 0).toLocaleString()}</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">${escapeHTML(asset.category)}</span>
+              <span class="text-xs font-mono text-zinc-300 font-semibold">$${(asset.value || 0).toLocaleString()}</span>
             </div>
             <h4 class="font-bold text-white text-base leading-snug">${escapeHTML(asset.name)}</h4>
-            <p class="text-xs text-slate-400 mt-1">
-              <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
+            <p class="text-xs text-zinc-400 mt-1">
+              <i class="fa-solid fa-location-dot text-[10px] text-zinc-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
             </p>
           </div>
 
-          <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <div class="pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
             <div>
-              <span class="block text-[10px] text-slate-500 uppercase font-semibold">Last Serviced</span>
+              <span class="block text-[10px] text-zinc-500 uppercase font-semibold">Last Serviced</span>
               <span class="font-mono">${asset.lastMaintenance ? asset.lastMaintenance : 'N/A'}</span>
             </div>
 
             <div class="flex items-center gap-1">
-              <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
+              <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
                 <i class="fa-solid fa-comments text-[10px]"></i> History
               </button>
-              <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+              <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">
                 <i class="fa-solid fa-pen text-xs"></i>
               </button>
               <button onclick="confirmDeleteAsset('${asset.id}')" class="p-1.5 text-rose-400 hover:text-rose-300 bg-rose-500/10 rounded-lg transition-colors">
@@ -1184,7 +1184,7 @@ function updateAssetFormPreview(url) {
   if (url) {
     DOM.assetFormPreviewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
   } else {
-    DOM.assetFormPreviewBox.innerHTML = `<i class="fa-solid fa-image text-lg text-slate-600"></i>`;
+    DOM.assetFormPreviewBox.innerHTML = `<i class="fa-solid fa-image text-lg text-zinc-600"></i>`;
   }
 }
 
@@ -1389,36 +1389,36 @@ function renderTimelineLogs(assetId) {
     if (log.statusAfter === 'Out of Service') dotClass = 'oos';
 
     const photoImg = log.imageUrl 
-      ? `<div class="mt-3"><img src="${log.imageUrl}" alt="Maintenance Photo" class="w-32 h-20 object-cover rounded-lg border border-slate-700"></div>`
+      ? `<div class="mt-3"><img src="${log.imageUrl}" alt="Maintenance Photo" class="w-32 h-20 object-cover rounded-lg border border-zinc-700"></div>`
       : '';
 
     return `
       <div class="relative pl-2">
         <div class="timeline-dot ${dotClass}"></div>
-        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="bg-zinc-950/70 border border-zinc-800 rounded-xl p-4 space-y-2">
           <div class="flex items-center justify-between gap-2">
             <span class="text-xs font-bold text-white font-mono">${log.date}</span>
-            <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
+            <span class="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">
               Cost: $${(log.cost || 0).toFixed(2)}
             </span>
           </div>
 
-          <div class="text-xs text-slate-300 flex items-center gap-2">
-            <span class="text-slate-400">Author / Tech:</span>
-            <strong class="text-indigo-300">${escapeHTML(log.technician || 'N/A')}</strong>
+          <div class="text-xs text-zinc-300 flex items-center gap-2">
+            <span class="text-zinc-400">Author / Tech:</span>
+            <strong class="text-zinc-200">${escapeHTML(log.technician || 'N/A')}</strong>
           </div>
 
-          <div class="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800/80 mt-2 whitespace-pre-line">
+          <div class="text-xs text-zinc-300 bg-zinc-900 p-2.5 rounded-lg border border-zinc-800 mt-2 whitespace-pre-line">
             ${escapeHTML(log.notes)}
           </div>
 
           ${photoImg}
 
-          <div class="text-[10px] text-slate-500 pt-1 flex items-center gap-1.5">
+          <div class="text-[10px] text-zinc-500 pt-1 flex items-center gap-1.5">
             <span>Status change:</span>
-            <span class="text-slate-400 font-semibold">${log.statusBefore || 'N/A'}</span>
+            <span class="text-zinc-400 font-semibold">${log.statusBefore || 'N/A'}</span>
             <i class="fa-solid fa-arrow-right text-[8px]"></i>
-            <span class="text-indigo-400 font-semibold">${log.statusAfter}</span>
+            <span class="text-zinc-200 font-semibold">${log.statusAfter}</span>
           </div>
         </div>
       </div>
@@ -1480,18 +1480,18 @@ function handleNewLogSubmit(e) {
 
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
-  let iconClass = 'fa-circle-info text-cyan-400';
-  let borderClass = 'border-cyan-500/30';
+  let iconClass = 'fa-circle-info text-zinc-400';
+  let borderClass = 'border-zinc-700';
 
   if (type === 'success') {
     iconClass = 'fa-circle-check text-emerald-400';
-    borderClass = 'border-emerald-500/30';
+    borderClass = 'border-emerald-500/20';
   } else if (type === 'error') {
     iconClass = 'fa-circle-exclamation text-rose-400';
-    borderClass = 'border-rose-500/30';
+    borderClass = 'border-rose-500/20';
   }
 
-  toast.className = `toast-item pointer-events-auto bg-slate-900 border ${borderClass} text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs min-w-[240px]`;
+  toast.className = `toast-item pointer-events-auto bg-zinc-900 border ${borderClass} text-zinc-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs min-w-[240px]`;
   toast.innerHTML = `
     <i class="fa-solid ${iconClass} text-base"></i>
     <span class="flex-1">${escapeHTML(message)}</span>
@@ -1501,9 +1501,9 @@ function showToast(message, type = 'info') {
 
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateX(20px)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transform = 'translateX(16px)';
+    toast.style.transition = 'all 0.25s ease';
+    setTimeout(() => toast.remove(), 250);
   }, 3500);
 }
 
@@ -1717,19 +1717,19 @@ function initEventListeners() {
   // Layout View Switcher (Table vs Card)
   DOM.viewTableViewBtn.addEventListener('click', () => {
     AppState.currentView = 'table';
-    DOM.viewTableViewBtn.classList.add('bg-slate-800', 'text-indigo-400');
-    DOM.viewTableViewBtn.classList.remove('text-slate-400');
-    DOM.viewCardViewBtn.classList.remove('bg-slate-800', 'text-indigo-400');
-    DOM.viewCardViewBtn.classList.add('text-slate-400');
+    DOM.viewTableViewBtn.classList.add('bg-zinc-800', 'text-white');
+    DOM.viewTableViewBtn.classList.remove('text-zinc-400');
+    DOM.viewCardViewBtn.classList.remove('bg-zinc-800', 'text-white');
+    DOM.viewCardViewBtn.classList.add('text-zinc-400');
     renderAssetDirectory();
   });
 
   DOM.viewCardViewBtn.addEventListener('click', () => {
     AppState.currentView = 'card';
-    DOM.viewCardViewBtn.classList.add('bg-slate-800', 'text-indigo-400');
-    DOM.viewCardViewBtn.classList.remove('text-slate-400');
-    DOM.viewTableViewBtn.classList.remove('bg-slate-800', 'text-indigo-400');
-    DOM.viewTableViewBtn.classList.add('text-slate-400');
+    DOM.viewCardViewBtn.classList.add('bg-zinc-800', 'text-white');
+    DOM.viewCardViewBtn.classList.remove('text-zinc-400');
+    DOM.viewTableViewBtn.classList.remove('bg-zinc-800', 'text-white');
+    DOM.viewTableViewBtn.classList.add('text-zinc-400');
     renderAssetDirectory();
   });
 
