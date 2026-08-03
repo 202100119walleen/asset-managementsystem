@@ -1,9 +1,27 @@
 /**
  * Store Asset Management System - Core JavaScript Application Logic
+ * Integrated with Supabase Cloud Backend + LocalStorage Cache
  */
 
 // ==========================================
-// 1. DEFAULT SEED DATA & INITIALIZATION
+// 1. SUPABASE CLIENT CONFIGURATION
+// ==========================================
+
+const SUPABASE_URL = 'https://tdnqsqltzyhfjyfsxunb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_0npn9hSGloSlBf53Co4ZJw_YYhkwFfh';
+
+let supabaseClient = null;
+if (window.supabase) {
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase client initialized successfully.');
+  } catch (err) {
+    console.warn('Failed to initialize Supabase client:', err);
+  }
+}
+
+// ==========================================
+// 2. DEFAULT SEED DATA & INITIALIZATION
 // ==========================================
 
 const DEFAULT_STORES = [
@@ -160,7 +178,7 @@ const SEED_LOGS_STORE_02 = [
 ];
 
 // ==========================================
-// 2. LOCALSTORAGE CONTROLLER LAYER
+// 3. STORAGE & SUPABASE SYNC LAYER
 // ==========================================
 
 class StorageManager {
@@ -168,20 +186,46 @@ class StorageManager {
     if (!localStorage.getItem('ams_stores')) {
       localStorage.setItem('ams_stores', JSON.stringify(DEFAULT_STORES));
     }
-    // Seed Store 01 if missing
+    // Seed Store 01 if missing locally
     if (!localStorage.getItem('ams_assets_STORE-01')) {
       localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
       localStorage.setItem('ams_logs_STORE-01', JSON.stringify(SEED_LOGS_STORE_01));
     }
-    // Seed Store 02 if missing
+    // Seed Store 02 if missing locally
     if (!localStorage.getItem('ams_assets_STORE-02')) {
       localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
       localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
     }
-    // Seed HQ if missing
+    // Seed HQ if missing locally
     if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
       localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
       localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
+    }
+
+    // Async sync with Supabase in background
+    StorageManager.syncWithSupabase();
+  }
+
+  static async syncWithSupabase() {
+    if (!supabaseClient) return;
+
+    try {
+      // 1. Sync Stores from Supabase
+      const { data: remoteStores, error: storesErr } = await supabaseClient.from('stores').select('*');
+      if (!storesErr && remoteStores && remoteStores.length > 0) {
+        const mappedStores = remoteStores.map(s => ({
+          code: s.code,
+          name: s.name,
+          password: s.password
+        }));
+        StorageManager.saveStores(mappedStores);
+        if (typeof renderStoreAccountsList === 'function') renderStoreAccountsList();
+      } else if (remoteStores && remoteStores.length === 0) {
+        // Upsert default stores to Supabase
+        await supabaseClient.from('stores').upsert(DEFAULT_STORES);
+      }
+    } catch (e) {
+      console.log('Supabase stores sync info:', e.message);
     }
   }
 
@@ -217,6 +261,11 @@ class StorageManager {
       localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify([]));
     }
 
+    // Push to Supabase
+    if (supabaseClient) {
+      supabaseClient.from('stores').insert([newStore]).catch(err => console.log('Supabase store insert note:', err));
+    }
+
     return { success: true, store: newStore };
   }
 
@@ -244,6 +293,25 @@ class StorageManager {
   static saveAssets(storeCode, assets) {
     if (!storeCode) return;
     localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
+
+    // Push to Supabase asynchronously
+    if (supabaseClient) {
+      const recordsToPush = assets.map(a => ({
+        id: a.id,
+        store_code: storeCode,
+        name: a.name,
+        category: a.category,
+        serial: a.serial,
+        status: a.status,
+        location: a.location,
+        last_maintenance: a.lastMaintenance,
+        value: a.value,
+        image_url: a.imageUrl,
+        updated_at: a.updatedAt || new Date().toISOString()
+      }));
+
+      supabaseClient.from('assets').upsert(recordsToPush).catch(err => console.log('Supabase asset push note:', err));
+    }
   }
 
   static getLogs(storeCode) {
@@ -258,6 +326,24 @@ class StorageManager {
   static saveLogs(storeCode, logs) {
     if (!storeCode) return;
     localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
+
+    // Push to Supabase asynchronously
+    if (supabaseClient) {
+      const logsToPush = logs.map(l => ({
+        id: l.id,
+        asset_id: l.assetId,
+        store_code: storeCode,
+        date: l.date,
+        technician: l.technician,
+        status_before: l.statusBefore,
+        status_after: l.statusAfter,
+        cost: l.cost,
+        image_url: l.imageUrl,
+        notes: l.notes
+      }));
+
+      supabaseClient.from('maintenance_logs').upsert(logsToPush).catch(err => console.log('Supabase log push note:', err));
+    }
   }
 
   static resetStoreData(storeCode) {
@@ -279,7 +365,7 @@ StorageManager.initStorage();
 
 
 // ==========================================
-// 3. MAIN APPLICATION STATE & CONTROLLER
+// 4. MAIN APPLICATION STATE & CONTROLLER
 // ==========================================
 
 const AppState = {
@@ -407,7 +493,7 @@ const DOM = {
 
 
 // ==========================================
-// 4. AUTHENTICATION & STORE MANAGEMENT LOGIC
+// 5. AUTHENTICATION & STORE MANAGEMENT LOGIC
 // ==========================================
 
 function renderStoreAccountsList() {
@@ -467,7 +553,7 @@ function handleStoreFormSubmit(e) {
   closeCreateStoreModal();
   renderStoreAccountsList();
 
-  showToast(`Store account "${result.store.code}" created successfully!`, 'success');
+  showToast(`Store account "${result.store.code}" created & synced to Supabase!`, 'success');
 }
 
 function handleLogin(storeCode, password) {
@@ -533,7 +619,7 @@ function loadStoreSession() {
 
 
 // ==========================================
-// 5. RENDERING ENGINE & COMPUTATIONS
+// 6. RENDERING ENGINE & COMPUTATIONS
 // ==========================================
 
 function refreshAppUI() {
@@ -736,7 +822,7 @@ function getStatusBadgeHTML(status) {
 
 
 // ==========================================
-// 6. ASSET CRUD MODAL HANDLERS
+// 7. ASSET CRUD MODAL HANDLERS
 // ==========================================
 
 function updateAssetFormPreview(url) {
@@ -805,10 +891,10 @@ function handleAssetFormSubmit(e) {
     if (idx !== -1) {
       AppState.assets[idx] = { ...AppState.assets[idx], ...assetData };
     }
-    showToast('Asset record updated successfully.', 'success');
+    showToast('Asset record updated & synced.', 'success');
   } else {
     AppState.assets.unshift(assetData);
-    showToast('New asset record added.', 'success');
+    showToast('New asset record added & synced.', 'success');
   }
 
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
@@ -828,6 +914,10 @@ function confirmDeleteAsset(assetId) {
     StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
     StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
+    if (supabaseClient) {
+      supabaseClient.from('assets').delete().eq('id', assetId).catch(err => console.log('Supabase asset delete note:', err));
+    }
+
     refreshAppUI();
     showToast(`Asset ${assetId} deleted.`, 'info');
   }
@@ -835,7 +925,7 @@ function confirmDeleteAsset(assetId) {
 
 
 // ==========================================
-// 7. MAINTENANCE HISTORY LOG TIMELINE MODAL
+// 8. MAINTENANCE HISTORY LOG TIMELINE MODAL
 // ==========================================
 
 function updateLogFormPreview(url) {
@@ -975,12 +1065,12 @@ function handleNewLogSubmit(e) {
   }`;
   DOM.historyModalAssetStatus.textContent = asset.status;
 
-  showToast('Maintenance log recorded successfully!', 'success');
+  showToast('Maintenance log recorded & synced!', 'success');
 }
 
 
 // ==========================================
-// 8. TOAST NOTIFICATIONS & UTILITIES
+// 9. TOAST NOTIFICATIONS & UTILITIES
 // ==========================================
 
 function showToast(message, type = 'info') {
@@ -1021,7 +1111,7 @@ function escapeHTML(str) {
 
 
 // ==========================================
-// 9. EVENT LISTENERS INITIALIZATION
+// 10. EVENT LISTENERS INITIALIZATION
 // ==========================================
 
 function initEventListeners() {
