@@ -750,10 +750,18 @@ const DOM = {
   logFormCompletionMode: document.getElementById('logFormCompletionMode'),
   completionModeBanner: document.getElementById('completionModeBanner'),
   logFormDateLabel: document.getElementById('logFormDateLabel'),
+  logFormTechnicianLabel: document.getElementById('logFormTechnicianLabel'),
   logFormPhotoLabel: document.getElementById('logFormPhotoLabel'),
+  nameRequiredNotice: document.getElementById('nameRequiredNotice'),
   photoRequiredNotice: document.getElementById('photoRequiredNotice'),
   proofUploadedTick: document.getElementById('proofUploadedTick'),
   logFileUploadBtn: document.getElementById('logFileUploadBtn'),
+  checklistDate: document.getElementById('checklistDate'),
+  checklistDateIcon: document.getElementById('checklistDateIcon'),
+  checklistName: document.getElementById('checklistName'),
+  checklistNameIcon: document.getElementById('checklistNameIcon'),
+  checklistPhoto: document.getElementById('checklistPhoto'),
+  checklistPhotoIcon: document.getElementById('checklistPhotoIcon'),
   timelineContainer: document.getElementById('timelineContainer'),
   emptyTimeline: document.getElementById('emptyTimeline'),
 
@@ -2212,6 +2220,31 @@ function handleAssetFormSubmit(e) {
   refreshAppUI();
 }
 
+function updateCompletionChecklist() {
+  if (!DOM.completionModeBanner || DOM.completionModeBanner.classList.contains('hidden')) return;
+
+  const hasDate = Boolean(DOM.logFormDate && DOM.logFormDate.value);
+  const hasName = Boolean(DOM.logFormTechnician && DOM.logFormTechnician.value.trim().length > 0);
+  const hasPhoto = Boolean(DOM.logFormImage && DOM.logFormImage.value.trim().length > 5);
+
+  function setCheck(rowEl, iconEl, ok, okText, failText) {
+    if (!rowEl || !iconEl) return;
+    if (ok) {
+      rowEl.className = 'flex items-center gap-2 text-[11px] font-medium transition-colors text-emerald-400';
+      iconEl.className = 'fa-solid fa-circle-check text-[11px]';
+      rowEl.querySelector('span').innerHTML = okText + ' — <span class="font-normal">✓ done</span>';
+    } else {
+      rowEl.className = 'flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400';
+      iconEl.className = 'fa-solid fa-circle-xmark text-[11px]';
+      rowEl.querySelector('span').innerHTML = failText + ' — <span class="font-normal">required</span>';
+    }
+  }
+
+  setCheck(DOM.checklistDate, DOM.checklistDateIcon, hasDate, 'Date Completed', 'Date Completed');
+  setCheck(DOM.checklistName, DOM.checklistNameIcon, hasName, 'Completed by (Name)', 'Completed by (Name)');
+  setCheck(DOM.checklistPhoto, DOM.checklistPhotoIcon, hasPhoto, 'Proof Photo', 'Proof Photo');
+}
+
 function activateCompletionMode() {
   // Switch form UI into "Task Completion" mode
   if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '1';
@@ -2243,9 +2276,17 @@ function deactivateCompletionMode() {
   if (DOM.logFormDateLabel) {
     DOM.logFormDateLabel.innerHTML = 'Service Date <span class="text-rose-400">*</span>';
   }
+  if (DOM.logFormTechnicianLabel) {
+    DOM.logFormTechnicianLabel.innerHTML = 'Technician / Comment Author';
+  }
+  if (DOM.logFormTechnician) {
+    DOM.logFormTechnician.placeholder = 'e.g. Technician Name / Admin';
+    DOM.logFormTechnician.classList.remove('border-emerald-500/50', 'border-rose-500', 'ring-1', 'ring-rose-500/40');
+  }
   if (DOM.logFormPhotoLabel) {
     DOM.logFormPhotoLabel.innerHTML = 'Service Photo / Receipt (Upload or Link)';
   }
+  if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.add('hidden');
   if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
   if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
   if (DOM.logFormSubmitLabel) DOM.logFormSubmitLabel.textContent = 'Save Comment / Service Log';
@@ -2253,7 +2294,10 @@ function deactivateCompletionMode() {
     DOM.logFormSubmitBtn.className = 'px-4 py-1.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5';
   }
   if (DOM.logFormDate) {
-    DOM.logFormDate.classList.remove('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30');
+    DOM.logFormDate.classList.remove('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30', 'border-rose-500', 'ring-rose-500/40');
+  }
+  if (DOM.logFormImage) {
+    DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
   }
   if (DOM.logFileUploadBtn) {
     DOM.logFileUploadBtn.classList.remove('border-emerald-500/50', 'text-emerald-300');
@@ -2698,7 +2742,16 @@ function handleNewLogSubmit(e) {
     return;
   }
 
-  // ─── ALL VALIDATION PASSED — now write data ───────────────────────────────
+  // 3. Name is required in completion mode
+  if (isCompletionMode && !DOM.logFormTechnician.value.trim()) {
+    showToast('⚠️ Please enter the name of the person who completed the task.', 'error');
+    if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.remove('hidden');
+    if (DOM.logFormTechnician) {
+      DOM.logFormTechnician.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
+      DOM.logFormTechnician.focus();
+    }
+    return;
+  }
 
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -3021,36 +3074,55 @@ function initEventListeners() {
         const base64Url = evt.target.result;
         DOM.logFormImage.value = base64Url;
         updateLogFormPreview(base64Url);
-        // Show proof-uploaded tick
         if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
         if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
+        if (DOM.logFormImage) DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
+        updateCompletionChecklist();
         showToast('Service receipt image selected.', 'success');
       };
       reader.readAsDataURL(file);
     }
   });
 
-  // Live watcher: show proof tick when URL is typed/pasted in completion mode
+  // Live watcher: image URL paste/type
   if (DOM.logFormImage) {
     DOM.logFormImage.addEventListener('input', () => {
       const hasImage = DOM.logFormImage.value.trim().length > 5;
-      if (DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1') {
-        if (hasImage) {
-          if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
-          if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
-          updateLogFormPreview(DOM.logFormImage.value.trim());
-        } else {
-          if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+      if (hasImage) {
+        if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
+        if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
+        DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
+        updateLogFormPreview(DOM.logFormImage.value.trim());
+      } else {
+        if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+        if (DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1') {
           if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
         }
-      } else if (hasImage) {
-        updateLogFormPreview(DOM.logFormImage.value.trim());
       }
+      updateCompletionChecklist();
     });
   }
 
+  // Live watcher: date field
+  if (DOM.logFormDate) {
+    DOM.logFormDate.addEventListener('change', () => {
+      if (DOM.logFormDate.value) {
+        DOM.logFormDate.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
+      }
+      updateCompletionChecklist();
+    });
+  }
 
-
+  // Live watcher: technician/name field
+  if (DOM.logFormTechnician) {
+    DOM.logFormTechnician.addEventListener('input', () => {
+      if (DOM.logFormTechnician.value.trim()) {
+        DOM.logFormTechnician.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
+        if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.add('hidden');
+      }
+      updateCompletionChecklist();
+    });
+  }
 
   // Layout View Switcher (Table vs Card)
   DOM.viewTableViewBtn.addEventListener('click', () => {
