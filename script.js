@@ -2031,16 +2031,6 @@ function renderCardView(assets) {
   }).join('');
 }
 
-function getStatusBadgeHTML(status) {
-  if (status === 'Good') {
-    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-good"><i class="fa-solid fa-circle text-[6px]"></i> Good</span>`;
-  } else if (status === 'Maintenance Needed') {
-    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-maintenance"><i class="fa-solid fa-wrench text-[10px]"></i> Service Needed</span>`;
-  } else {
-    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold badge-oos"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Out of Service</span>`;
-  }
-}
-
 
 // ==========================================
 // 8. ASSET CRUD MODAL HANDLERS
