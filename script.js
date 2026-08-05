@@ -1994,6 +1994,35 @@ function canUserAddComment(storeCode) {
   return false;
 }
 
+function canUserAddComment(storeCode) {
+  if (!AppState.currentUser) return false;
+  if (AppState.currentUser.role === 'admin') return true;
+  if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
+  return false;
+}
+
+function toggleNotificationDropdown(e) {
+  if (e) e.stopPropagation();
+  if (DOM.notifDropdown) {
+    DOM.notifDropdown.classList.toggle('hidden');
+    renderNotifications();
+  }
+}
+
+function toggleNewLogForm(e) {
+  if (e) e.stopPropagation();
+  if (!canUserAddComment(AppState.activeStore ? AppState.activeStore.code : '')) {
+    showToast('Unauthorized: Only Admins or assigned Store account can add comments.', 'error');
+    return;
+  }
+  if (DOM.newLogForm) {
+    DOM.newLogForm.classList.toggle('hidden');
+    if (!DOM.newLogForm.classList.contains('hidden') && DOM.logFormNotes) {
+      DOM.logFormNotes.focus();
+    }
+  }
+}
+
 function updateLogFormPreview(url) {
   if (url) {
     DOM.logFormPreviewBox.classList.remove('hidden');
@@ -2595,6 +2624,9 @@ window.confirmDeleteStore = confirmDeleteStore;
 window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 window.markTaskCompleted = markTaskCompleted;
 window.replyToComment = replyToComment;
+window.toggleNotificationDropdown = toggleNotificationDropdown;
+window.toggleNewLogForm = toggleNewLogForm;
+window.handleNotificationClick = handleNotificationClick;
 
 // Bootstrap Application
 document.addEventListener('DOMContentLoaded', () => {
