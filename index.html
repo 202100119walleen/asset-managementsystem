@@ -287,6 +287,37 @@
 
         <!-- Right Header Actions -->
         <div class="flex items-center gap-3">
+          <!-- Notification Center Bell & Dropdown -->
+          <div class="relative">
+            <button id="notifBellBtn" type="button" class="relative p-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/80 rounded-xl transition-all flex items-center justify-center" title="Notifications & Alerts">
+              <i class="fa-solid fa-bell text-sm"></i>
+              <span id="notifBadgeCount" class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] h-[18px] text-[10px] font-extrabold text-white bg-rose-500 rounded-full flex items-center justify-center border-2 border-zinc-900 animate-pulse">0</span>
+            </button>
+
+            <!-- Notification Dropdown Panel -->
+            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+              <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-bell text-amber-400 text-xs"></i>
+                  <h3 class="text-xs font-bold text-white tracking-wide uppercase">Notifications</h3>
+                </div>
+                <button id="markAllNotifsReadBtn" type="button" class="text-[11px] text-zinc-400 hover:text-white font-medium transition-colors">
+                  Mark all read
+                </button>
+              </div>
+
+              <!-- Notifications List Container -->
+              <div id="notifListContainer" class="max-h-80 overflow-y-auto divide-y divide-zinc-800/60">
+              </div>
+
+              <!-- Empty State -->
+              <div id="emptyNotifState" class="hidden p-6 text-center space-y-2">
+                <i class="fa-solid fa-bell-slash text-2xl text-zinc-600"></i>
+                <p class="text-xs text-zinc-400 font-medium">No new notifications</p>
+              </div>
+            </div>
+          </div>
+
           <button id="openAddAssetBtn" class="px-3.5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus text-xs"></i>
             <span>Add New Asset</span>

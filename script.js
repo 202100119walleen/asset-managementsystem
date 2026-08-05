@@ -187,6 +187,32 @@ const SEED_LOGS_STORE_02 = [
 // ==========================================
 // 3. STORAGE & SUPABASE SYNC LAYER
 // ==========================================
+const DEFAULT_NOTIFICATIONS = [
+  {
+    id: 'NOTIF-01',
+    recipientRole: 'admin',
+    recipientStoreCode: null,
+    title: 'Service Log Submitted',
+    message: 'STORE-01 submitted a service log for HVAC Unit (AST-1001).',
+    assetId: 'AST-1001',
+    storeCode: 'STORE-01',
+    isRead: false,
+    type: 'log',
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString()
+  },
+  {
+    id: 'NOTIF-02',
+    recipientRole: 'store',
+    recipientStoreCode: 'STORE-01',
+    title: 'Admin Comment Reply',
+    message: 'Admin admin1 replied to your comment on POS Terminal 01 (AST-1002).',
+    assetId: 'AST-1002',
+    storeCode: 'STORE-01',
+    isRead: false,
+    type: 'reply',
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString()
+  }
+];
 
 class StorageManager {
   static initStorage() {
@@ -207,6 +233,10 @@ class StorageManager {
     if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
       localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
       localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
+    }
+    // Seed Notifications if missing locally
+    if (!localStorage.getItem('ams_notifications')) {
+      localStorage.setItem('ams_notifications', JSON.stringify(DEFAULT_NOTIFICATIONS));
     }
 
     // Async sync with Supabase in background
@@ -253,6 +283,25 @@ class StorageManager {
             if (typeof refreshAppUI === 'function') refreshAppUI();
           }
         }
+      }
+
+      // 3. Sync Notifications from Supabase
+      const { data: remoteNotifs, error: notifErr } = await supabaseClient.from('notifications').select('*').order('created_at', { ascending: false });
+      if (!notifErr && remoteNotifs && remoteNotifs.length > 0) {
+        const mappedNotifs = remoteNotifs.map(n => ({
+          id: n.id,
+          recipientRole: n.recipient_role,
+          recipientStoreCode: n.recipient_store_code,
+          title: n.title,
+          message: n.message,
+          assetId: n.asset_id,
+          storeCode: n.store_code,
+          isRead: Boolean(n.is_read),
+          type: n.type,
+          createdAt: n.created_at
+        }));
+        StorageManager.saveNotifications(mappedNotifs, false);
+        if (typeof renderNotifications === 'function') renderNotifications();
       }
     } catch (e) {
       console.log('Supabase sync note:', e.message);
@@ -442,6 +491,66 @@ class StorageManager {
       localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify([]));
     }
   }
+
+  static getNotifications() {
+    try {
+      return JSON.parse(localStorage.getItem('ams_notifications')) || DEFAULT_NOTIFICATIONS;
+    } catch {
+      return DEFAULT_NOTIFICATIONS;
+    }
+  }
+
+  static saveNotifications(notifications, pushToSupabase = true) {
+    try {
+      localStorage.setItem('ams_notifications', JSON.stringify(notifications));
+    } catch (e) {
+      console.warn('LocalStorage save notification error:', e);
+    }
+
+    if (pushToSupabase && supabaseClient) {
+      const recordsToPush = notifications.map(n => ({
+        id: n.id,
+        recipient_role: n.recipientRole,
+        recipient_store_code: n.recipientStoreCode || null,
+        title: n.title,
+        message: n.message,
+        asset_id: n.assetId || null,
+        store_code: n.storeCode || null,
+        is_read: Boolean(n.isRead),
+        type: n.type || 'info',
+        created_at: n.createdAt || new Date().toISOString()
+      }));
+
+      supabaseClient.from('notifications').upsert(recordsToPush).then(({ error }) => {
+        if (error) console.log('Supabase notification push status:', error.message);
+      }).catch(err => console.log('Supabase notification push note:', err));
+    }
+  }
+
+  static addNotification(notifData) {
+    const notifications = StorageManager.getNotifications();
+    const newNotif = {
+      id: `NOTIF-${Math.floor(100000 + Math.random() * 900000)}`,
+      recipientRole: notifData.recipientRole,
+      recipientStoreCode: notifData.recipientStoreCode || null,
+      title: notifData.title,
+      message: notifData.message,
+      assetId: notifData.assetId || null,
+      storeCode: notifData.storeCode || null,
+      isRead: false,
+      type: notifData.type || 'info',
+      createdAt: new Date().toISOString()
+    };
+
+    notifications.unshift(newNotif);
+    StorageManager.saveNotifications(notifications, true);
+
+    if (typeof renderNotifications === 'function') {
+      renderNotifications();
+    }
+
+    return newNotif;
+  }
 }
 
 // Initialize default storage on script load
@@ -595,7 +704,15 @@ const DOM = {
   emptyTimeline: document.getElementById('emptyTimeline'),
 
   // Toast Container
-  toastContainer: document.getElementById('toastContainer')
+  toastContainer: document.getElementById('toastContainer'),
+
+  // Notification Center
+  notifBellBtn: document.getElementById('notifBellBtn'),
+  notifBadgeCount: document.getElementById('notifBadgeCount'),
+  notifDropdown: document.getElementById('notifDropdown'),
+  notifListContainer: document.getElementById('notifListContainer'),
+  markAllNotifsReadBtn: document.getElementById('markAllNotifsReadBtn'),
+  emptyNotifState: document.getElementById('emptyNotifState')
 };
 
 
@@ -991,7 +1108,498 @@ function confirmDeleteStore(storeCode) {
 function refreshAppUI() {
   renderDashboardStats();
   renderAssetDirectory();
+  renderNotifications();
 }
+
+function renderNotifications() {
+  if (!DOM.notifListContainer) return;
+
+  const notifications = StorageManager.getNotifications();
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+  const userStoreCode = AppState.currentUser ? AppState.currentUser.storeCode : null;
+
+  // Filter notifications relevant for current logged-in user
+  const relevantNotifs = notifications.filter(n => {
+    if (isUserAdmin) {
+      return n.recipientRole === 'admin';
+    } else {
+      return n.recipientRole === 'store' && (!n.recipientStoreCode || n.recipientStoreCode === userStoreCode);
+    }
+  });
+
+  const unreadCount = relevantNotifs.filter(n => !n.isRead).length;
+
+  if (DOM.notifBadgeCount) {
+    if (unreadCount > 0) {
+      DOM.notifBadgeCount.textContent = unreadCount > 99 ? '99+' : unreadCount;
+      DOM.notifBadgeCount.classList.remove('hidden');
+    } else {
+      DOM.notifBadgeCount.classList.add('hidden');
+    }
+  }
+
+  if (relevantNotifs.length === 0) {
+    DOM.notifListContainer.innerHTML = '';
+    if (DOM.emptyNotifState) DOM.emptyNotifState.classList.remove('hidden');
+    return;
+  }
+
+  if (DOM.emptyNotifState) DOM.emptyNotifState.classList.add('hidden');
+
+  DOM.notifListContainer.innerHTML = relevantNotifs.map(n => {
+    const unreadBg = !n.isRead ? 'bg-amber-500/5 hover:bg-amber-500/10 border-l-2 border-amber-400' : 'hover:bg-zinc-800/50';
+    const unreadDot = !n.isRead ? `<div class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></div>` : '';
+    const timeAgo = formatTimeAgo(n.createdAt);
+
+    let typeIcon = '<i class="fa-solid fa-bell text-amber-400 text-xs"></i>';
+    if (n.type === 'log') typeIcon = '<i class="fa-solid fa-wrench text-cyan-400 text-xs"></i>';
+    if (n.type === 'reply') typeIcon = '<i class="fa-solid fa-reply text-amber-400 text-xs"></i>';
+    if (n.type === 'status') typeIcon = '<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>';
+    if (n.type === 'assignment') typeIcon = '<i class="fa-solid fa-box text-purple-400 text-xs"></i>';
+
+    return `
+      <div onclick="handleNotificationClick('${escapeHTML(n.id)}')" class="p-3.5 ${unreadBg} cursor-pointer transition-colors flex items-start gap-3 text-left">
+        <div class="w-7 h-7 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+          ${typeIcon}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-0.5">
+            <h4 class="text-xs font-bold text-white truncate">${escapeHTML(n.title)}</h4>
+            <span class="text-[10px] text-zinc-500 font-mono shrink-0">${timeAgo}</span>
+          </div>
+          <p class="text-[11px] text-zinc-300 line-clamp-2 leading-relaxed">${escapeHTML(n.message)}</p>
+          <div class="flex items-center gap-2 mt-1 text-[10px] text-zinc-400">
+            <span class="font-mono text-amber-400/90 font-semibold">${escapeHTML(n.storeCode || '')}</span>
+            ${n.assetId ? '<span>•</span><span class="text-zinc-400 hover:text-white underline">View Asset &rarr;</span>' : ''}
+          </div>
+        </div>
+        ${unreadDot}
+      </div>
+    `;
+  }).join('');
+}
+
+function formatTimeAgo(isoString) {
+  if (!isoString) return 'Just now';
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function handleNotificationClick(notifId) {
+  const notifications = StorageManager.getNotifications();
+  const notif = notifications.find(n => n.id === notifId);
+  if (!notif) return;
+
+  notif.isRead = true;
+  StorageManager.saveNotifications(notifications);
+
+  if (DOM.notifDropdown) DOM.notifDropdown.classList.add('hidden');
+  renderNotifications();
+
+  if (notif.assetId) {
+    openHistoryModal(notif.assetId);
+  }
+}
+
+function markAllNotificationsRead() {
+  const notifications = StorageManager.getNotifications();
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+  const userStoreCode = AppState.currentUser ? AppState.currentUser.storeCode : null;
+
+  notifications.forEach(n => {
+    if (isUserAdmin && n.recipientRole === 'admin') {
+      n.isRead = true;
+    } else if (!isUserAdmin && n.recipientRole === 'store' && (!n.recipientStoreCode || n.recipientStoreCode === userStoreCode)) {
+      n.isRead = true;
+    }
+  });
+
+  StorageManager.saveNotifications(notifications);
+  renderNotifications();
+  showToast('All notifications marked as read.', 'info');
+}
+
+
+// ==========================================
+// 11. EVENT LISTENERS INITIALIZATION
+// ==========================================
+
+function initEventListeners() {
+  // Notification Center Dropdown Toggle
+  if (DOM.notifBellBtn && DOM.notifDropdown) {
+    DOM.notifBellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      DOM.notifDropdown.classList.toggle('hidden');
+    });
+  }
+
+  if (DOM.markAllNotifsReadBtn) {
+    DOM.markAllNotifsReadBtn.addEventListener('click', markAllNotificationsRead);
+  }
+
+  // Login Tab Switching
+  DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
+  DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
+
+  // Password Visibility Toggle for Login Form
+  const toggleLoginPasswordBtn = document.getElementById('toggleLoginPasswordBtn');
+  const loginPwdEyeIcon = document.getElementById('loginPwdEyeIcon');
+  if (toggleLoginPasswordBtn && DOM.loginPassword && loginPwdEyeIcon) {
+    toggleLoginPasswordBtn.addEventListener('click', () => {
+      if (DOM.loginPassword.type === 'password') {
+        DOM.loginPassword.type = 'text';
+        loginPwdEyeIcon.className = 'fa-solid fa-eye-slash text-xs text-zinc-300';
+      } else {
+        DOM.loginPassword.type = 'password';
+        loginPwdEyeIcon.className = 'fa-solid fa-eye text-xs text-zinc-500';
+      }
+    });
+  }
+
+  // Admin Quick Selection Buttons (Sets username, clears password, REQUIRES USER TO TYPE PASSWORD)
+  document.querySelectorAll('.admin-demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchLoginTab('admin');
+      const user = btn.getAttribute('data-user');
+      DOM.loginStoreCode.value = user;
+      DOM.loginPassword.value = '';
+      DOM.loginPassword.focus();
+      showToast(`Selected Admin account "${user}". Please type password to log in.`, 'info');
+    });
+  });
+
+  // Login Form Submit (Requires correct password)
+  DOM.loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    handleLogin(DOM.loginStoreCode.value, DOM.loginPassword.value);
+  });
+
+  // Store Switcher Dropdown (Sidebar & Header)
+  if (DOM.activeStoreSelect) {
+    DOM.activeStoreSelect.addEventListener('change', e => {
+      const selectedCode = e.target.value;
+      const stores = StorageManager.getStores();
+      const storeObj = stores.find(s => s.code === selectedCode);
+      if (storeObj) {
+        AppState.activeStore = storeObj;
+        StorageManager.setActiveStoreCode(storeObj.code);
+        AppState.assets = StorageManager.getAssets(storeObj.code);
+        AppState.logs = StorageManager.getLogs(storeObj.code);
+        if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = storeObj.name;
+        refreshAppUI();
+        showToast(`Switched active store view to ${storeObj.code}`, 'info');
+      }
+    });
+  }
+
+  // Admin Console & Store Modals
+  if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.addEventListener('click', openAdminStoreManagerModal);
+  DOM.closeAdminStoreManagerModalBtn.addEventListener('click', closeAdminStoreManagerModal);
+  DOM.adminCreateNewStoreBtn.addEventListener('click', () => {
+    closeAdminStoreManagerModal();
+    openCreateStoreModal();
+  });
+  if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
+  DOM.closeStoreModalBtn.addEventListener('click', closeCreateStoreModal);
+  DOM.cancelStoreModalBtn.addEventListener('click', closeCreateStoreModal);
+  DOM.storeForm.addEventListener('submit', handleStoreFormSubmit);
+
+  // Mobile sidebar toggle & backdrop listeners
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  const sidebarNav = document.getElementById('sidebarNav');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+  if (sidebarToggleBtn && sidebarNav && sidebarBackdrop) {
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebarNav.classList.toggle('-translate-x-full');
+      sidebarBackdrop.classList.toggle('hidden');
+    });
+
+    sidebarBackdrop.addEventListener('click', () => {
+      sidebarNav.classList.add('-translate-x-full');
+      sidebarBackdrop.classList.add('hidden');
+    });
+  }
+
+  // Sidebar Logout Button
+  const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+  if (sidebarLogoutBtn) {
+    sidebarLogoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // User Dropdown Menu Toggle & Outside Click Handler
+  if (DOM.userMenuBtn && DOM.userMenuDropdown) {
+    DOM.userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      DOM.userMenuDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', e => {
+      if (!DOM.userMenuBtn.contains(e.target) && !DOM.userMenuDropdown.contains(e.target)) {
+        DOM.userMenuDropdown.classList.add('hidden');
+      }
+      if (DOM.notifBellBtn && DOM.notifDropdown && !DOM.notifBellBtn.contains(e.target) && !DOM.notifDropdown.contains(e.target)) {
+        DOM.notifDropdown.classList.add('hidden');
+      }
+    });
+  }
+
+  // Header Actions
+  if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
+  if (DOM.resetStoreDataBtn) {
+    DOM.resetStoreDataBtn.addEventListener('click', () => {
+      if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
+        StorageManager.resetStoreData(AppState.activeStore.code);
+        loadUserSession();
+        if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
+        showToast('Store data reset to demo defaults.', 'info');
+      }
+    });
+  }
+
+  // Open Add Asset Modal
+  if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.addEventListener('click', openAddAssetModal);
+  if (DOM.emptyAddBtn) DOM.emptyAddBtn.addEventListener('click', openAddAssetModal);
+  DOM.closeAssetModalBtn.addEventListener('click', closeAssetModal);
+  DOM.cancelAssetModalBtn.addEventListener('click', closeAssetModal);
+
+  // Asset Form Submit
+  DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
+
+  // Backdrop overlay click closes modals
+  [DOM.adminStoreManagerModal, DOM.storeModal, DOM.assetModal, DOM.historyModal].forEach(modal => {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.style.display = 'none';
+      }
+    });
+  });
+
+  // ESC key closes any open modal or dropdown
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeAdminStoreManagerModal();
+      closeCreateStoreModal();
+      closeAssetModal();
+      closeHistoryModal();
+      if (DOM.notifDropdown) DOM.notifDropdown.classList.add('hidden');
+    }
+  });
+
+  // Local File Upload Listener for Asset Form
+  DOM.assetFormFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+      DOM.assetFileLabel.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Url = evt.target.result;
+        DOM.assetFormImage.value = base64Url;
+        updateAssetFormPreview(base64Url);
+        showToast('Local image selected & encoded.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Image URL Input Listener for Asset Form
+  DOM.assetFormImage.addEventListener('input', e => {
+    updateAssetFormPreview(e.target.value.trim());
+  });
+
+  // Image Preset Buttons in Asset Form
+  document.querySelectorAll('.preset-img-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      DOM.assetFormImage.value = url;
+      DOM.assetFileLabel.textContent = 'Choose Local Device Image';
+      updateAssetFormPreview(url);
+    });
+  });
+
+  // Maintenance History Modal Actions
+  DOM.closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
+  DOM.toggleNewLogFormBtn.addEventListener('click', () => {
+    DOM.newLogForm.classList.toggle('hidden');
+  });
+  DOM.cancelLogFormBtn.addEventListener('click', () => {
+    DOM.newLogForm.classList.add('hidden');
+  });
+  DOM.newLogForm.addEventListener('submit', handleNewLogSubmit);
+
+  // Local File Upload Listener for Maintenance Log Form
+  DOM.logFormFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+      DOM.logFileLabel.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Url = evt.target.result;
+        DOM.logFormImage.value = base64Url;
+        updateLogFormPreview(base64Url);
+        showToast('Service receipt image selected.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Image URL Input Listener for Log Form
+  DOM.logFormImage.addEventListener('input', e => {
+    updateLogFormPreview(e.target.value.trim());
+  });
+
+  // Layout View Switcher (Table vs Card)
+  DOM.viewTableViewBtn.addEventListener('click', () => {
+    AppState.currentView = 'table';
+    DOM.viewTableViewBtn.classList.add('bg-zinc-800', 'text-white');
+    DOM.viewTableViewBtn.classList.remove('text-zinc-400');
+    DOM.viewCardViewBtn.classList.remove('bg-zinc-800', 'text-white');
+    DOM.viewCardViewBtn.classList.add('text-zinc-400');
+    renderAssetDirectory();
+  });
+
+  DOM.viewCardViewBtn.addEventListener('click', () => {
+    AppState.currentView = 'card';
+    DOM.viewCardViewBtn.classList.add('bg-zinc-800', 'text-white');
+    DOM.viewCardViewBtn.classList.remove('text-zinc-400');
+    DOM.viewTableViewBtn.classList.remove('bg-zinc-800', 'text-white');
+    DOM.viewTableViewBtn.classList.add('text-zinc-400');
+    renderAssetDirectory();
+  });
+
+  // Search Input Filter
+  DOM.searchInput.addEventListener('input', e => {
+    AppState.searchQuery = e.target.value;
+    renderAssetDirectory();
+  });
+
+  // Category Select Filter
+  DOM.categoryFilter.addEventListener('change', e => {
+    AppState.categoryFilter = e.target.value;
+    renderAssetDirectory();
+  });
+
+  // Status Tab Chips Filter
+  DOM.statusTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      DOM.statusTabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      AppState.statusFilter = btn.getAttribute('data-status');
+      renderAssetDirectory();
+    });
+  });
+}
+
+function initSupabaseRealtime() {
+  if (!supabaseClient) return;
+
+  try {
+    supabaseClient
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const row = payload.new;
+            const notifItem = {
+              id: row.id,
+              recipientRole: row.recipient_role,
+              recipientStoreCode: row.recipient_store_code,
+              title: row.title,
+              message: row.message,
+              assetId: row.asset_id,
+              storeCode: row.store_code,
+              isRead: Boolean(row.is_read),
+              createdAt: row.created_at,
+              type: row.type
+            };
+
+            const notifs = StorageManager.getNotifications();
+            const idx = notifs.findIndex(n => n.id === notifItem.id);
+            if (idx !== -1) {
+              notifs[idx] = notifItem;
+            } else {
+              notifs.unshift(notifItem);
+
+              if (AppState.currentUser) {
+                const isUserAdmin = AppState.currentUser.role === 'admin';
+                const isTargetStore = AppState.currentUser.role === 'store' && 
+                  (!notifItem.recipientStoreCode || notifItem.recipientStoreCode === AppState.currentUser.storeCode);
+
+                if ((isUserAdmin && notifItem.recipientRole === 'admin') || isTargetStore) {
+                  showToast(`🔔 ${notifItem.title}: ${notifItem.message}`, 'info');
+                }
+              }
+            }
+
+            StorageManager.saveNotifications(notifs, false);
+            renderNotifications();
+          }
+        }
+      )
+      .subscribe();
+
+    supabaseClient
+      .channel('public:maintenance_logs')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'maintenance_logs' },
+        () => {
+          if (AppState.activeStore) {
+            AppState.logs = StorageManager.getLogs(AppState.activeStore.code);
+            refreshAppUI();
+          }
+        }
+      )
+      .subscribe();
+
+    supabaseClient
+      .channel('public:assets')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'assets' },
+        () => {
+          if (AppState.activeStore) {
+            AppState.assets = StorageManager.getAssets(AppState.activeStore.code);
+            refreshAppUI();
+          }
+        }
+      )
+      .subscribe();
+
+  } catch (err) {
+    console.warn('Realtime subscription note:', err);
+  }
+}
+
+// Global functions exposed for inline onclick handlers
+window.openHistoryModal = openHistoryModal;
+window.openEditAssetModal = openEditAssetModal;
+window.confirmDeleteAsset = confirmDeleteAsset;
+window.openEditStoreModal = openEditStoreModal;
+window.confirmDeleteStore = confirmDeleteStore;
+window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
+window.markTaskCompleted = markTaskCompleted;
+window.replyToComment = replyToComment;
+window.handleNotificationClick = handleNotificationClick;
+
+// Bootstrap Application
+document.addEventListener('DOMContentLoaded', () => {
+  initEventListeners();
+  switchLoginTab('store');
+  renderStoreAccountsList();
+  loadUserSession();
+  initSupabaseRealtime();
+});
 
 function renderDashboardStats() {
   const assets = AppState.assets;
@@ -1319,6 +1927,19 @@ function handleAssetFormSubmit(e) {
 
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
+  // Trigger Notification for Store
+  StorageManager.addNotification({
+    recipientRole: 'store',
+    recipientStoreCode: AppState.activeStore.code,
+    title: isEditing ? 'Asset Updated by Admin' : 'New Asset Assigned by Admin',
+    message: isEditing 
+      ? `Admin updated details/status for "${assetData.name}" (${assetData.serial}) to ${assetData.status}.`
+      : `Admin created and assigned new asset "${assetData.name}" (${assetData.serial}) to store ${AppState.activeStore.code}.`,
+    assetId: assetData.id,
+    storeCode: AppState.activeStore.code,
+    type: isEditing ? 'status' : 'assignment'
+  });
+
   AppState.searchQuery = '';
   AppState.statusFilter = 'ALL';
   AppState.categoryFilter = 'ALL';
@@ -1471,6 +2092,29 @@ function markTaskCompleted(assetId) {
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
   StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
+  // Trigger Notification for completion
+  if (AppState.currentUser.role === 'admin') {
+    StorageManager.addNotification({
+      recipientRole: 'store',
+      recipientStoreCode: AppState.activeStore.code,
+      title: 'Task Marked as Completed',
+      message: `Admin ${AppState.currentUser.username} marked maintenance task on "${asset.name}" as COMPLETED.`,
+      assetId: asset.id,
+      storeCode: AppState.activeStore.code,
+      type: 'status'
+    });
+  } else {
+    StorageManager.addNotification({
+      recipientRole: 'admin',
+      recipientStoreCode: null,
+      title: 'Store Completed Maintenance Task',
+      message: `Store ${AppState.activeStore.code} marked maintenance task on "${asset.name}" as COMPLETED.`,
+      assetId: asset.id,
+      storeCode: AppState.activeStore.code,
+      type: 'status'
+    });
+  }
+
   refreshAppUI();
 
   if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden') && DOM.logFormAssetId.value === assetId) {
@@ -1608,6 +2252,29 @@ function handleNewLogSubmit(e) {
   asset.lastMaintenance = serviceDate;
   asset.updatedAt = new Date().toISOString();
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+
+  // Trigger Notification for target role
+  if (AppState.currentUser.role === 'admin') {
+    StorageManager.addNotification({
+      recipientRole: 'store',
+      recipientStoreCode: AppState.activeStore.code,
+      title: 'New Admin Comment / Reply',
+      message: `Admin ${AppState.currentUser.username} commented on "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
+      assetId: asset.id,
+      storeCode: AppState.activeStore.code,
+      type: 'reply'
+    });
+  } else {
+    StorageManager.addNotification({
+      recipientRole: 'admin',
+      recipientStoreCode: null,
+      title: 'New Service Log Submitted',
+      message: `Store ${AppState.activeStore.code} submitted a log for "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
+      assetId: asset.id,
+      storeCode: AppState.activeStore.code,
+      type: 'log'
+    });
+  }
 
   DOM.newLogForm.classList.add('hidden');
   renderTimelineLogs(asset.id);
