@@ -751,6 +751,8 @@ function loadUserSession() {
     DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
     if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.remove('hidden');
     if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.remove('hidden');
+    if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.classList.remove('hidden');
+    if (DOM.emptyAddBtn) DOM.emptyAddBtn.classList.remove('hidden');
     if (sidebarAdminBlock) sidebarAdminBlock.classList.remove('hidden');
     if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: System Administrator`;
     if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
@@ -765,6 +767,8 @@ function loadUserSession() {
     DOM.roleDisplayName.textContent = `STORE • ${savedSession.storeCode}`;
     if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.add('hidden');
     if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.add('hidden');
+    if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.classList.add('hidden');
+    if (DOM.emptyAddBtn) DOM.emptyAddBtn.classList.add('hidden');
     if (sidebarAdminBlock) sidebarAdminBlock.classList.add('hidden');
     if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: Store User`;
     if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Store Code: ${savedSession.storeCode}`;
