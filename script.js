@@ -2241,7 +2241,7 @@ function updateCompletionChecklist() {
   }
 
   setCheck(DOM.checklistDate, DOM.checklistDateIcon, hasDate, 'Date Completed', 'Date Completed');
-  setCheck(DOM.checklistName, DOM.checklistNameIcon, hasName, 'Completed by (Name)', 'Completed by (Name)');
+  setCheck(DOM.checklistName, DOM.checklistNameIcon, hasName, 'Responsible', 'Responsible');
   setCheck(DOM.checklistPhoto, DOM.checklistPhotoIcon, hasPhoto, 'Proof Photo', 'Proof Photo');
 }
 
@@ -2251,6 +2251,13 @@ function activateCompletionMode() {
   if (DOM.completionModeBanner) DOM.completionModeBanner.classList.remove('hidden');
   if (DOM.logFormDateLabel) {
     DOM.logFormDateLabel.innerHTML = 'Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+  }
+  if (DOM.logFormTechnicianLabel) {
+    DOM.logFormTechnicianLabel.innerHTML = 'Responsible <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+  }
+  if (DOM.logFormTechnician) {
+    DOM.logFormTechnician.placeholder = 'e.g. Juan Santos — person responsible for completion';
+    DOM.logFormTechnician.classList.add('border-emerald-500/50');
   }
   if (DOM.logFormPhotoLabel) {
     DOM.logFormPhotoLabel.innerHTML = 'Proof Photo <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
@@ -2277,10 +2284,10 @@ function deactivateCompletionMode() {
     DOM.logFormDateLabel.innerHTML = 'Service Date <span class="text-rose-400">*</span>';
   }
   if (DOM.logFormTechnicianLabel) {
-    DOM.logFormTechnicianLabel.innerHTML = 'Technician / Comment Author';
+    DOM.logFormTechnicianLabel.innerHTML = 'Responsible';
   }
   if (DOM.logFormTechnician) {
-    DOM.logFormTechnician.placeholder = 'e.g. Technician Name / Admin';
+    DOM.logFormTechnician.placeholder = 'e.g. Juan Santos — person responsible';
     DOM.logFormTechnician.classList.remove('border-emerald-500/50', 'border-rose-500', 'ring-1', 'ring-rose-500/40');
   }
   if (DOM.logFormPhotoLabel) {
@@ -2744,7 +2751,7 @@ function handleNewLogSubmit(e) {
 
   // 3. Name is required in completion mode
   if (isCompletionMode && !DOM.logFormTechnician.value.trim()) {
-    showToast('⚠️ Please enter the name of the person who completed the task.', 'error');
+    showToast('⚠️ Please enter the name of the person responsible for completing this task.', 'error');
     if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.remove('hidden');
     if (DOM.logFormTechnician) {
       DOM.logFormTechnician.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
