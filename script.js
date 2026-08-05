@@ -2123,15 +2123,33 @@ function handleAssetFormSubmit(e) {
   const userSerial = DOM.assetFormSerial.value.trim();
   const serialNumber = userSerial || `SN-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  const assignedDueDate = DOM.assetFormDueDate ? DOM.assetFormDueDate.value : '';
+  let selectedStatus = DOM.assetFormStatus.value;
+
+  if (assignedDueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueParts = assignedDueDate.split('-');
+    const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
+    due.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0 && selectedStatus === 'Good') {
+      selectedStatus = 'Maintenance Needed';
+    }
+  }
+
   const assetData = {
     id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     name: DOM.assetFormName.value.trim(),
     category: DOM.assetFormCategory.value,
     serial: serialNumber,
-    status: DOM.assetFormStatus.value,
+    status: selectedStatus,
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
     lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
-    dueDate: DOM.assetFormDueDate ? DOM.assetFormDueDate.value : '',
+    dueDate: assignedDueDate,
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
     updatedAt: new Date().toISOString()
