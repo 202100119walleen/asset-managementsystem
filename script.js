@@ -1067,11 +1067,28 @@ function renderAssetDirectory() {
 }
 
 function renderTableView(assets) {
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset.status);
     const thumbnail = asset.imageUrl 
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700">`
       : `<div class="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500"><i class="fa-solid fa-box text-sm"></i></div>`;
+
+    const adminActionButtons = isUserAdmin ? `
+      <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors" title="Edit Asset">
+        <i class="fa-solid fa-pen-to-square text-xs"></i>
+      </button>
+      <button onclick="confirmDeleteAsset('${asset.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Asset">
+        <i class="fa-solid fa-trash text-xs"></i>
+      </button>
+    ` : '';
+
+    const quickCompleteBtn = asset.status !== 'Good' ? `
+      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Mark Task as Completed">
+        <i class="fa-solid fa-check text-[9px]"></i> Complete
+      </button>
+    ` : '';
 
     return `
       <tr class="border-b border-zinc-800/80">
@@ -1101,15 +1118,11 @@ function renderTableView(assets) {
         </td>
         <td class="py-3.5 px-4 text-right">
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors" title="View Maintenance History & Comments">
-              <i class="fa-solid fa-comments text-xs"></i>
+            ${quickCompleteBtn}
+            <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1 font-medium text-xs" title="View History & Service Logs">
+              <i class="fa-solid fa-comments text-xs"></i> Logs
             </button>
-            <button onclick="openEditAssetModal('${asset.id}')" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors" title="Edit Asset">
-              <i class="fa-solid fa-pen-to-square text-xs"></i>
-            </button>
-            <button onclick="confirmDeleteAsset('${asset.id}')" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors" title="Delete Asset">
-              <i class="fa-solid fa-trash text-xs"></i>
-            </button>
+            ${adminActionButtons}
           </div>
         </td>
       </tr>
@@ -1118,11 +1131,28 @@ function renderTableView(assets) {
 }
 
 function renderCardView(assets) {
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset.status);
     const thumbnail = asset.imageUrl 
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-zinc-800">`
       : `<div class="w-full h-40 bg-zinc-800/80 flex items-center justify-center text-zinc-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
+
+    const adminCardActions = isUserAdmin ? `
+      <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors" title="Edit Asset">
+        <i class="fa-solid fa-pen text-xs"></i>
+      </button>
+      <button onclick="confirmDeleteAsset('${asset.id}')" class="p-1.5 text-rose-400 hover:text-rose-300 bg-rose-500/10 rounded-lg transition-colors" title="Delete Asset">
+        <i class="fa-solid fa-trash text-xs"></i>
+      </button>
+    ` : '';
+
+    const quickCompleteBtn = asset.status !== 'Good' ? `
+      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Mark Task as Completed">
+        <i class="fa-solid fa-check text-[9px]"></i> Complete
+      </button>
+    ` : '';
 
     return `
       <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col hover:border-zinc-700 transition-all">
@@ -1155,15 +1185,11 @@ function renderCardView(assets) {
             </div>
 
             <div class="flex items-center gap-1">
+              ${quickCompleteBtn}
               <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
                 <i class="fa-solid fa-comments text-[10px]"></i> History
               </button>
-              <button onclick="openEditAssetModal('${asset.id}')" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">
-                <i class="fa-solid fa-pen text-xs"></i>
-              </button>
-              <button onclick="confirmDeleteAsset('${asset.id}')" class="p-1.5 text-rose-400 hover:text-rose-300 bg-rose-500/10 rounded-lg transition-colors">
-                <i class="fa-solid fa-trash text-xs"></i>
-              </button>
+              ${adminCardActions}
             </div>
           </div>
         </div>
@@ -1196,6 +1222,11 @@ function updateAssetFormPreview(url) {
 }
 
 function openAddAssetModal() {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Administrators can create assets.', 'error');
+    return;
+  }
+
   DOM.assetForm.reset();
   DOM.assetFormId.value = '';
   DOM.assetFormFileInput.value = '';
@@ -1210,6 +1241,11 @@ function openAddAssetModal() {
 }
 
 function openEditAssetModal(assetId) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Administrators can edit assets.', 'error');
+    return;
+  }
+
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
 
@@ -1241,6 +1277,11 @@ function closeAssetModal() {
 
 function handleAssetFormSubmit(e) {
   e.preventDefault();
+
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Administrators can manage asset records.', 'error');
+    return;
+  }
 
   const id = DOM.assetFormId.value;
   const isEditing = Boolean(id);
@@ -1290,6 +1331,11 @@ function handleAssetFormSubmit(e) {
 }
 
 function confirmDeleteAsset(assetId) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Administrators can delete assets.', 'error');
+    return;
+  }
+
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
 
