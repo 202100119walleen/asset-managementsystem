@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.assets (
     status VARCHAR(50) NOT NULL DEFAULT 'Good',
     location VARCHAR(255),
     last_maintenance DATE,
+    due_date DATE,
     value NUMERIC(12, 2) DEFAULT 0,
     image_url TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 -- INDEXES FOR FAST RECIPIENT & STORE QUERYING
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS due_date DATE;
 CREATE INDEX IF NOT EXISTS idx_assets_store_code ON public.assets(store_code);
 CREATE INDEX IF NOT EXISTS idx_maintenance_logs_asset_id ON public.maintenance_logs(asset_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON public.notifications(recipient_role, recipient_store_code, is_read);

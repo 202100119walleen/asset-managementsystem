@@ -447,18 +447,24 @@
 
           <!-- Status Tabs Chips -->
           <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-t border-zinc-800/80 pt-3">
-            <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mr-1">Status:</span>
-            <button class="status-tab-btn active px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-all border border-zinc-700" data-status="ALL">
+            <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mr-1 shrink-0">Filter Status:</span>
+            <button class="status-tab-btn active px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-all border border-zinc-700 shrink-0" data-status="ALL">
               All Assets (<span id="countTabAll">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all" data-status="Good">
-              <i class="fa-solid fa-circle text-[7px] text-emerald-400 mr-1"></i> Good (<span id="countTabGood">0</span>)
+            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Completed">
+              🟢 Completed (<span id="countTabCompleted">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all" data-status="Maintenance Needed">
-              <i class="fa-solid fa-circle text-[7px] text-amber-400 mr-1"></i> Maintenance Needed (<span id="countTabMaint">0</span>)
+            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Overdue">
+              🔴 Overdue (<span id="countTabOverdue">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all" data-status="Out of Service">
-              <i class="fa-solid fa-circle text-[7px] text-rose-400 mr-1"></i> Out of Service (<span id="countTabOos">0</span>)
+            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Due Today">
+              🟠 Due Today (<span id="countTabDueToday">0</span>)
+            </button>
+            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Due Soon">
+              🟡 Due Soon (<span id="countTabDueSoon">0</span>)
+            </button>
+            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Scheduled">
+              🔵 Scheduled (<span id="countTabScheduled">0</span>)
             </button>
           </div>
         </section>
@@ -771,7 +777,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormLastMaint">
               Last Maintenance Date
@@ -780,6 +786,17 @@
               type="date" 
               id="assetFormLastMaint" 
               class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600"
+            >
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1.5" for="assetFormDueDate">
+              <i class="fa-solid fa-calendar-check mr-1"></i> Due Date (Admin Assigned)
+            </label>
+            <input 
+              type="date" 
+              id="assetFormDueDate" 
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-amber-500/30 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
             >
           </div>
 

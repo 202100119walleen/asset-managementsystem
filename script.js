@@ -273,6 +273,7 @@ class StorageManager {
             status: a.status,
             location: a.location,
             lastMaintenance: a.last_maintenance,
+            dueDate: a.due_date || '',
             value: parseFloat(a.value) || 0,
             imageUrl: a.image_url,
             updatedAt: a.updated_at
@@ -467,6 +468,7 @@ class StorageManager {
         status: a.status,
         location: a.location || '',
         last_maintenance: a.lastMaintenance || '',
+        due_date: a.dueDate || null,
         value: a.value || 0,
         image_url: a.imageUrl || '',
         updated_at: a.updatedAt || new Date().toISOString()
@@ -683,9 +685,11 @@ const DOM = {
   viewCardViewBtn: document.getElementById('viewCardViewBtn'),
   statusTabBtns: document.querySelectorAll('.status-tab-btn'),
   countTabAll: document.getElementById('countTabAll'),
-  countTabGood: document.getElementById('countTabGood'),
-  countTabMaint: document.getElementById('countTabMaint'),
-  countTabOos: document.getElementById('countTabOos'),
+  countTabCompleted: document.getElementById('countTabCompleted'),
+  countTabOverdue: document.getElementById('countTabOverdue'),
+  countTabDueToday: document.getElementById('countTabDueToday'),
+  countTabDueSoon: document.getElementById('countTabDueSoon'),
+  countTabScheduled: document.getElementById('countTabScheduled'),
 
   // Containers
   tableViewContainer: document.getElementById('tableViewContainer'),
@@ -705,6 +709,7 @@ const DOM = {
   assetFormStatus: document.getElementById('assetFormStatus'),
   assetFormLocation: document.getElementById('assetFormLocation'),
   assetFormLastMaint: document.getElementById('assetFormLastMaint'),
+  assetFormDueDate: document.getElementById('assetFormDueDate'),
   assetFormValue: document.getElementById('assetFormValue'),
   assetFormFileInput: document.getElementById('assetFormFileInput'),
   assetFileLabel: document.getElementById('assetFileLabel'),
@@ -1673,41 +1678,157 @@ document.addEventListener('DOMContentLoaded', () => {
   initSupabaseRealtime();
 });
 
+function getTaskDueStatus(asset) {
+  if (asset.status === 'Good') {
+    return {
+      statusKey: 'Completed',
+      label: 'Completed',
+      icon: '🟢',
+      badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      dotClass: 'bg-emerald-400',
+      daysSubtext: 'Task Completed',
+      priority: 1
+    };
+  }
+
+  if (!asset.dueDate) {
+    if (asset.status === 'Out of Service') {
+      return {
+        statusKey: 'Out of Service',
+        label: 'Out of Service',
+        icon: '🔴',
+        badgeClass: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+        dotClass: 'bg-rose-400',
+        daysSubtext: 'Inactive / OOS',
+        priority: 2
+      };
+    }
+    return {
+      statusKey: 'Maintenance Needed',
+      label: 'Service Needed',
+      icon: '🟡',
+      badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
+      dotClass: 'bg-amber-400',
+      daysSubtext: 'No due date set',
+      priority: 4
+    };
+  }
+
+  // Calculate day difference normalized to midnight
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueParts = asset.dueDate.split('-');
+  const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
+  due.setHours(0, 0, 0, 0);
+
+  const diffTime = due.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays);
+    return {
+      statusKey: 'Overdue',
+      label: 'Overdue',
+      icon: '🔴',
+      badgeClass: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+      dotClass: 'bg-rose-400',
+      daysSubtext: `Overdue by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`,
+      priority: 2
+    };
+  } else if (diffDays === 0) {
+    return {
+      statusKey: 'Due Today',
+      label: 'Due Today',
+      icon: '🟠',
+      badgeClass: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+      dotClass: 'bg-orange-400',
+      daysSubtext: 'Due Today',
+      priority: 3
+    };
+  } else if (diffDays <= 7) {
+    return {
+      statusKey: 'Due Soon',
+      label: 'Due Soon',
+      icon: '🟡',
+      badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
+      dotClass: 'bg-amber-400',
+      daysSubtext: `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`,
+      priority: 4
+    };
+  } else {
+    return {
+      statusKey: 'Scheduled',
+      label: 'Scheduled',
+      icon: '🔵',
+      badgeClass: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+      dotClass: 'bg-blue-400',
+      daysSubtext: `${diffDays} days remaining`,
+      priority: 5
+    };
+  }
+}
+
+function getStatusBadgeHTML(asset) {
+  const dueInfo = typeof asset === 'object' ? getTaskDueStatus(asset) : {
+    label: asset,
+    icon: '🟢',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    daysSubtext: ''
+  };
+
+  return `
+    <div class="inline-flex flex-col items-start gap-0.5">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${dueInfo.badgeClass}">
+        <span class="text-[10px]">${dueInfo.icon}</span>
+        <span>${escapeHTML(dueInfo.label)}</span>
+      </span>
+      ${dueInfo.daysSubtext ? `<span class="text-[10px] text-zinc-400 font-mono pl-0.5">${escapeHTML(dueInfo.daysSubtext)}</span>` : ''}
+    </div>
+  `;
+}
+
 function renderDashboardStats() {
   const assets = AppState.assets;
   const totalCount = assets.length;
   
-  const goodAssets = assets.filter(a => a.status === 'Good');
+  const completedAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Completed');
+  const overdueAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Overdue');
+  const dueTodayAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Due Today');
+  const dueSoonAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Due Soon');
+  const scheduledAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Scheduled');
   const maintAssets = assets.filter(a => a.status === 'Maintenance Needed');
   const oosAssets = assets.filter(a => a.status === 'Out of Service');
 
   const totalValue = assets.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
 
-  DOM.statTotalCount.textContent = totalCount;
-  DOM.statTotalValue.textContent = `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Total`;
+  if (DOM.statTotalCount) DOM.statTotalCount.textContent = totalCount;
+  if (DOM.statTotalValue) DOM.statTotalValue.textContent = `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Total`;
 
-  DOM.statGoodCount.textContent = goodAssets.length;
-  const goodPct = totalCount > 0 ? Math.round((goodAssets.length / totalCount) * 100) : 0;
-  DOM.statGoodPct.textContent = `${goodPct}% operational`;
-  DOM.statGoodBar.style.width = `${goodPct}%`;
+  if (DOM.statGoodCount) DOM.statGoodCount.textContent = completedAssets.length;
+  const goodPct = totalCount > 0 ? Math.round((completedAssets.length / totalCount) * 100) : 0;
+  if (DOM.statGoodPct) DOM.statGoodPct.textContent = `${goodPct}% operational`;
+  if (DOM.statGoodBar) DOM.statGoodBar.style.width = `${goodPct}%`;
 
-  DOM.statMaintCount.textContent = maintAssets.length;
+  if (DOM.statMaintCount) DOM.statMaintCount.textContent = maintAssets.length;
   const maintPct = totalCount > 0 ? Math.round((maintAssets.length / totalCount) * 100) : 0;
-  DOM.statMaintBar.style.width = `${maintPct}%`;
+  if (DOM.statMaintBar) DOM.statMaintBar.style.width = `${maintPct}%`;
 
-  DOM.statOosCount.textContent = oosAssets.length;
+  if (DOM.statOosCount) DOM.statOosCount.textContent = oosAssets.length;
   const oosPct = totalCount > 0 ? Math.round((oosAssets.length / totalCount) * 100) : 0;
-  DOM.statOosBar.style.width = `${oosPct}%`;
+  if (DOM.statOosBar) DOM.statOosBar.style.width = `${oosPct}%`;
 
   // Update status tab counters
-  DOM.countTabAll.textContent = totalCount;
-  DOM.countTabGood.textContent = goodAssets.length;
-  DOM.countTabMaint.textContent = maintAssets.length;
-  DOM.countTabOos.textContent = oosAssets.length;
+  if (DOM.countTabAll) DOM.countTabAll.textContent = totalCount;
+  if (DOM.countTabCompleted) DOM.countTabCompleted.textContent = completedAssets.length;
+  if (DOM.countTabOverdue) DOM.countTabOverdue.textContent = overdueAssets.length;
+  if (DOM.countTabDueToday) DOM.countTabDueToday.textContent = dueTodayAssets.length;
+  if (DOM.countTabDueSoon) DOM.countTabDueSoon.textContent = dueSoonAssets.length;
+  if (DOM.countTabScheduled) DOM.countTabScheduled.textContent = scheduledAssets.length;
 }
 
 function getFilteredAssets() {
-  return AppState.assets.filter(asset => {
+  const assets = AppState.assets.filter(asset => {
     // Search Filter
     const query = AppState.searchQuery.toLowerCase().trim();
     const matchesSearch = !query || 
@@ -1718,12 +1839,38 @@ function getFilteredAssets() {
       asset.category.toLowerCase().includes(query);
 
     // Status Filter
-    const matchesStatus = AppState.statusFilter === 'ALL' || asset.status === AppState.statusFilter;
+    const dueInfo = getTaskDueStatus(asset);
+    let matchesStatus = true;
+    if (AppState.statusFilter !== 'ALL') {
+      if (AppState.statusFilter === 'Completed') {
+        matchesStatus = dueInfo.statusKey === 'Completed';
+      } else if (AppState.statusFilter === 'Overdue') {
+        matchesStatus = dueInfo.statusKey === 'Overdue';
+      } else if (AppState.statusFilter === 'Due Today') {
+        matchesStatus = dueInfo.statusKey === 'Due Today';
+      } else if (AppState.statusFilter === 'Due Soon') {
+        matchesStatus = dueInfo.statusKey === 'Due Soon';
+      } else if (AppState.statusFilter === 'Scheduled') {
+        matchesStatus = dueInfo.statusKey === 'Scheduled';
+      } else {
+        matchesStatus = asset.status === AppState.statusFilter;
+      }
+    }
 
     // Category Filter
     const matchesCategory = AppState.categoryFilter === 'ALL' || asset.category === AppState.categoryFilter;
 
     return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  // Sort Assets strictly by Status Priority (1. Completed -> 2. Overdue -> 3. Due Today -> 4. Due Soon -> 5. Scheduled)
+  return assets.sort((a, b) => {
+    const statusA = getTaskDueStatus(a);
+    const statusB = getTaskDueStatus(b);
+    if (statusA.priority !== statusB.priority) {
+      return statusA.priority - statusB.priority;
+    }
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
   });
 }
 
@@ -1754,7 +1901,7 @@ function renderTableView(assets) {
   const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   DOM.assetTableBody.innerHTML = assets.map(asset => {
-    const statusBadge = getStatusBadgeHTML(asset.status);
+    const statusBadge = getStatusBadgeHTML(asset);
     const thumbnail = asset.imageUrl 
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700">`
       : `<div class="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500"><i class="fa-solid fa-box text-sm"></i></div>`;
@@ -1773,6 +1920,8 @@ function renderTableView(assets) {
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
     ` : '';
+
+    const dueDateDisplay = asset.dueDate ? `<span class="text-amber-400/90 font-medium">${asset.dueDate}</span>` : '<span class="text-zinc-600">None</span>';
 
     return `
       <tr class="border-b border-zinc-800/80">
@@ -1797,8 +1946,8 @@ function renderTableView(assets) {
         <td class="py-3.5 px-4">
           ${statusBadge}
         </td>
-        <td class="py-3.5 px-4 text-xs font-mono text-zinc-400">
-          ${asset.lastMaintenance ? asset.lastMaintenance : '<span class="text-zinc-600">Never</span>'}
+        <td class="py-3.5 px-4 text-xs font-mono">
+          ${dueDateDisplay}
         </td>
         <td class="py-3.5 px-4 text-right">
           <div class="flex items-center justify-end gap-1.5">
@@ -1818,7 +1967,7 @@ function renderCardView(assets) {
   const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
-    const statusBadge = getStatusBadgeHTML(asset.status);
+    const statusBadge = getStatusBadgeHTML(asset);
     const thumbnail = asset.imageUrl 
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-zinc-800">`
       : `<div class="w-full h-40 bg-zinc-800/80 flex items-center justify-center text-zinc-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
@@ -1896,7 +2045,6 @@ function getStatusBadgeHTML(status) {
 // ==========================================
 // 8. ASSET CRUD MODAL HANDLERS
 // ==========================================
-
 function updateAssetFormPreview(url) {
   if (url) {
     DOM.assetFormPreviewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
@@ -1917,6 +2065,7 @@ function openAddAssetModal() {
   DOM.assetFileLabel.textContent = 'Choose Local Device Image';
   DOM.assetModalTitle.textContent = 'Add New Asset';
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
+  if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = '';
   updateAssetFormPreview('');
   
   DOM.assetModal.classList.remove('hidden');
@@ -1940,6 +2089,7 @@ function openEditAssetModal(assetId) {
   DOM.assetFormStatus.value = asset.status;
   DOM.assetFormLocation.value = asset.location || '';
   DOM.assetFormLastMaint.value = asset.lastMaintenance || '';
+  if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = asset.dueDate || '';
   DOM.assetFormValue.value = asset.value || '';
   DOM.assetFormImage.value = asset.imageUrl || '';
   DOM.assetFormFileInput.value = '';
@@ -1981,6 +2131,7 @@ function handleAssetFormSubmit(e) {
     status: DOM.assetFormStatus.value,
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
     lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
+    dueDate: DOM.assetFormDueDate ? DOM.assetFormDueDate.value : '',
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
     updatedAt: new Date().toISOString()
@@ -2000,17 +2151,30 @@ function handleAssetFormSubmit(e) {
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
   // Trigger Notification for Store
-  StorageManager.addNotification({
-    recipientRole: 'store',
-    recipientStoreCode: AppState.activeStore.code,
-    title: isEditing ? 'Asset Updated by Admin' : 'New Asset Assigned by Admin',
-    message: isEditing 
-      ? `Admin updated details/status for "${assetData.name}" (${assetData.serial}) to ${assetData.status}.`
-      : `Admin created and assigned new asset "${assetData.name}" (${assetData.serial}) to store ${AppState.activeStore.code}.`,
-    assetId: assetData.id,
-    storeCode: AppState.activeStore.code,
-    type: isEditing ? 'status' : 'assignment'
-  });
+  if (assetData.dueDate) {
+    const dueInfo = getTaskDueStatus(assetData);
+    StorageManager.addNotification({
+      recipientRole: 'store',
+      recipientStoreCode: AppState.activeStore.code,
+      title: 'Task Due Date Assigned',
+      message: `Admin assigned a maintenance due date of ${assetData.dueDate} (${dueInfo.daysSubtext}) for "${assetData.name}"`,
+      assetId: assetData.id,
+      storeCode: AppState.activeStore.code,
+      type: 'assignment'
+    });
+  } else {
+    StorageManager.addNotification({
+      recipientRole: 'store',
+      recipientStoreCode: AppState.activeStore.code,
+      title: isEditing ? 'Asset Updated by Admin' : 'New Asset Assigned by Admin',
+      message: isEditing 
+        ? `Admin updated record details for asset "${assetData.name}"`
+        : `Admin assigned new asset "${assetData.name}" to store ${AppState.activeStore.code}`,
+      assetId: assetData.id,
+      storeCode: AppState.activeStore.code,
+      type: 'status'
+    });
+  }
 
   AppState.searchQuery = '';
   AppState.statusFilter = 'ALL';
