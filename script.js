@@ -1203,7 +1203,43 @@ function handleNotificationClick(notifId) {
   renderNotifications();
 
   if (notif.assetId) {
-    openHistoryModal(notif.assetId);
+    // If notification belongs to a specific store, switch active store context if needed
+    if (notif.storeCode && AppState.activeStore && AppState.activeStore.code !== notif.storeCode) {
+      const stores = StorageManager.getStores();
+      const targetStore = stores.find(s => s.code === notif.storeCode);
+      if (targetStore) {
+        AppState.activeStore = targetStore;
+        StorageManager.setActiveStoreCode(targetStore.code);
+        AppState.assets = StorageManager.getAssets(targetStore.code);
+        AppState.logs = StorageManager.getLogs(targetStore.code);
+        if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = targetStore.name;
+        if (DOM.activeStoreSelect) DOM.activeStoreSelect.value = targetStore.code;
+        refreshAppUI();
+      }
+    }
+
+    let asset = AppState.assets.find(a => a.id === notif.assetId);
+    if (!asset && notif.storeCode) {
+      const storeAssets = StorageManager.getAssets(notif.storeCode);
+      asset = storeAssets.find(a => a.id === notif.assetId);
+      if (asset) {
+        const stores = StorageManager.getStores();
+        const targetStore = stores.find(s => s.code === notif.storeCode);
+        if (targetStore) {
+          AppState.activeStore = targetStore;
+          StorageManager.setActiveStoreCode(targetStore.code);
+          AppState.assets = storeAssets;
+          AppState.logs = StorageManager.getLogs(targetStore.code);
+          if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = targetStore.name;
+          if (DOM.activeStoreSelect) DOM.activeStoreSelect.value = targetStore.code;
+          refreshAppUI();
+        }
+      }
+    }
+
+    if (asset) {
+      openHistoryModal(asset.id);
+    }
   }
 }
 
