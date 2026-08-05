@@ -276,6 +276,8 @@ class StorageManager {
             dueDate: a.due_date || '',
             value: parseFloat(a.value) || 0,
             imageUrl: a.image_url,
+            isCompleted: Boolean(a.is_completed),
+            completedImageUrl: a.completed_image_url || '',
             updatedAt: a.updated_at
           }));
           StorageManager.saveAssets(activeCode, mappedAssets, false);
@@ -471,6 +473,8 @@ class StorageManager {
         due_date: a.dueDate || null,
         value: a.value || 0,
         image_url: a.imageUrl || '',
+        is_completed: a.isCompleted ? true : false,
+        completed_image_url: a.completedImageUrl || '',
         updated_at: a.updatedAt || new Date().toISOString()
       }));
 
@@ -1679,7 +1683,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getTaskDueStatus(asset) {
-  if (asset.status === 'Good') {
+  // Task is only completed if explicitly marked isCompleted OR status is Good with no due date or lastMaintenance on/after dueDate
+  const isExplicitlyCompleted = Boolean(asset.isCompleted);
+  const isMaintenanceMet = Boolean(
+    asset.status === 'Good' && 
+    asset.lastMaintenance && 
+    asset.dueDate && 
+    new Date(asset.lastMaintenance) >= new Date(asset.dueDate)
+  );
+
+  if (isExplicitlyCompleted || isMaintenanceMet) {
     return {
       statusKey: 'Completed',
       label: 'Completed',
@@ -1703,14 +1716,25 @@ function getTaskDueStatus(asset) {
         priority: 2
       };
     }
+    if (asset.status === 'Maintenance Needed') {
+      return {
+        statusKey: 'Maintenance Needed',
+        label: 'Service Needed',
+        icon: '🟡',
+        badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
+        dotClass: 'bg-amber-400',
+        daysSubtext: 'No due date set',
+        priority: 4
+      };
+    }
     return {
-      statusKey: 'Maintenance Needed',
-      label: 'Service Needed',
-      icon: '🟡',
-      badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
-      dotClass: 'bg-amber-400',
-      daysSubtext: 'No due date set',
-      priority: 4
+      statusKey: 'Completed',
+      label: 'Good / Operational',
+      icon: '🟢',
+      badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      dotClass: 'bg-emerald-400',
+      daysSubtext: 'Operational',
+      priority: 1
     };
   }
 
@@ -1915,8 +1939,9 @@ function renderTableView(assets) {
       </button>
     ` : '';
 
-    const quickCompleteBtn = asset.status !== 'Good' ? `
-      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Mark Task as Completed">
+    const dueStatusForBtn = getTaskDueStatus(asset);
+    const quickCompleteBtn = (dueStatusForBtn.statusKey !== 'Completed' && asset.dueDate) ? `
+      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Mark Task as Completed — requires photo proof">
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
     ` : '';
@@ -1981,8 +2006,9 @@ function renderCardView(assets) {
       </button>
     ` : '';
 
-    const quickCompleteBtn = asset.status !== 'Good' ? `
-      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Mark Task as Completed">
+    const dueStatusForCardBtn = getTaskDueStatus(asset);
+    const quickCompleteBtn = (dueStatusForCardBtn.statusKey !== 'Completed' && asset.dueDate) ? `
+      <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Mark Task as Completed — requires photo proof">
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
     ` : '';
@@ -2199,6 +2225,40 @@ function handleAssetFormSubmit(e) {
   refreshAppUI();
 }
 
+function markTaskCompleted(assetId) {
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  if (!canUserAddComment(AppState.activeStore.code)) {
+    showToast('Unauthorized: Only assigned Store account or Admin can mark task as completed.', 'error');
+    return;
+  }
+
+  if (!asset.dueDate) {
+    showToast('A due date must be set by Admin before a task can be marked as completed.', 'error');
+    return;
+  }
+
+  if (asset.isCompleted) {
+    showToast('This task is already marked as completed.', 'info');
+    return;
+  }
+
+  openHistoryModal(assetId);
+
+  // Pre-fill the service log form for completion
+  setTimeout(() => {
+    if (DOM.newLogForm) {
+      DOM.newLogForm.classList.remove('hidden');
+    }
+    if (DOM.logFormNewStatus) DOM.logFormNewStatus.value = 'Good';
+    if (DOM.logFormNotes && (!DOM.logFormNotes.value || DOM.logFormNotes.value.length < 5)) {
+      DOM.logFormNotes.value = 'Task completed and verified. Photo proof of completed work attached below.';
+    }
+    showToast('📷 Please attach a photo proof of completion, then submit the service log.', 'info');
+  }, 300);
+}
+
 function confirmDeleteAsset(assetId) {
   if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
     showToast('Unauthorized: Only Administrators can delete assets.', 'error');
@@ -2317,12 +2377,47 @@ async function openHistoryModal(assetId) {
   DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
 
   // Show / hide Mark as Completed quick action banner
+  const dueStatusModal = getTaskDueStatus(asset);
   if (DOM.markCompletedBanner) {
-    if (asset.status !== 'Good') {
+    if (dueStatusModal.statusKey !== 'Completed' && asset.dueDate) {
       DOM.markCompletedBanner.classList.remove('hidden');
-      if (DOM.markCompletedBtn) {
-        DOM.markCompletedBtn.onclick = () => markTaskCompleted(asset.id);
-      }
+      DOM.markCompletedBanner.innerHTML = `
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+          <div>
+            <p class="text-xs font-bold text-emerald-300">Ready to mark as completed?</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Attach a photo proof of the completed work before submitting.</p>
+          </div>
+          <button onclick="markTaskCompleted('${asset.id}')" class="ml-auto px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5">
+            <i class="fa-solid fa-check text-[10px]"></i> Mark Complete
+          </button>
+        </div>
+      `;
+    } else if (dueStatusModal.statusKey === 'Completed' && asset.completedImageUrl) {
+      DOM.markCompletedBanner.classList.remove('hidden');
+      DOM.markCompletedBanner.innerHTML = `
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+          <div class="flex-1">
+            <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work on file.</p>
+          </div>
+          <a href="${asset.completedImageUrl}" target="_blank" class="flex-shrink-0">
+            <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 hover:border-emerald-400 transition-colors cursor-pointer">
+          </a>
+        </div>
+      `;
+    } else if (dueStatusModal.statusKey !== 'Completed' && !asset.dueDate) {
+      DOM.markCompletedBanner.classList.remove('hidden');
+      DOM.markCompletedBanner.innerHTML = `
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-calendar-xmark text-amber-400 text-base"></i>
+          <div>
+            <p class="text-xs font-bold text-amber-300">No Due Date Set</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Admin must assign a due date before this task can be marked as completed.</p>
+          </div>
+        </div>
+      `;
     } else {
       DOM.markCompletedBanner.classList.add('hidden');
     }
@@ -2552,6 +2647,16 @@ function handleNewLogSubmit(e) {
   asset.status = newStatus;
   asset.lastMaintenance = serviceDate;
   asset.updatedAt = new Date().toISOString();
+
+  // Mark as officially completed if status set to Good and there's a photo proof attached
+  if (newStatus === 'Good' && logEntry.imageUrl) {
+    asset.isCompleted = true;
+    asset.completedImageUrl = logEntry.imageUrl;
+  } else if (newStatus === 'Good' && !asset.dueDate) {
+    // No due date — 'Good' just means operational, not a completed task
+    asset.isCompleted = false;
+  }
+
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
   // Trigger Notification for target role
