@@ -745,6 +745,15 @@ const DOM = {
   logFormPreviewBox: document.getElementById('logFormPreviewBox'),
   logFormNotes: document.getElementById('logFormNotes'),
   cancelLogFormBtn: document.getElementById('cancelLogFormBtn'),
+  logFormSubmitBtn: document.getElementById('logFormSubmitBtn'),
+  logFormSubmitLabel: document.getElementById('logFormSubmitLabel'),
+  logFormCompletionMode: document.getElementById('logFormCompletionMode'),
+  completionModeBanner: document.getElementById('completionModeBanner'),
+  logFormDateLabel: document.getElementById('logFormDateLabel'),
+  logFormPhotoLabel: document.getElementById('logFormPhotoLabel'),
+  photoRequiredNotice: document.getElementById('photoRequiredNotice'),
+  proofUploadedTick: document.getElementById('proofUploadedTick'),
+  logFileUploadBtn: document.getElementById('logFileUploadBtn'),
   timelineContainer: document.getElementById('timelineContainer'),
   emptyTimeline: document.getElementById('emptyTimeline'),
 
@@ -2234,6 +2243,55 @@ function handleAssetFormSubmit(e) {
   refreshAppUI();
 }
 
+function activateCompletionMode() {
+  // Switch form UI into "Task Completion" mode
+  if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '1';
+  if (DOM.completionModeBanner) DOM.completionModeBanner.classList.remove('hidden');
+  if (DOM.logFormDateLabel) {
+    DOM.logFormDateLabel.innerHTML = 'Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+  }
+  if (DOM.logFormPhotoLabel) {
+    DOM.logFormPhotoLabel.innerHTML = 'Proof Photo <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+  }
+  if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
+  if (DOM.logFormSubmitLabel) DOM.logFormSubmitLabel.textContent = 'Submit Completion';
+  if (DOM.logFormSubmitBtn) {
+    DOM.logFormSubmitBtn.className = 'px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5';
+  }
+  // Highlight the date & image fields
+  if (DOM.logFormDate) {
+    DOM.logFormDate.classList.add('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30');
+  }
+  if (DOM.logFileUploadBtn) {
+    DOM.logFileUploadBtn.classList.add('border-emerald-500/50', 'text-emerald-300');
+    DOM.logFileUploadBtn.classList.remove('border-zinc-700');
+  }
+}
+
+function deactivateCompletionMode() {
+  if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '0';
+  if (DOM.completionModeBanner) DOM.completionModeBanner.classList.add('hidden');
+  if (DOM.logFormDateLabel) {
+    DOM.logFormDateLabel.innerHTML = 'Service Date <span class="text-rose-400">*</span>';
+  }
+  if (DOM.logFormPhotoLabel) {
+    DOM.logFormPhotoLabel.innerHTML = 'Service Photo / Receipt (Upload or Link)';
+  }
+  if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
+  if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+  if (DOM.logFormSubmitLabel) DOM.logFormSubmitLabel.textContent = 'Save Comment / Service Log';
+  if (DOM.logFormSubmitBtn) {
+    DOM.logFormSubmitBtn.className = 'px-4 py-1.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5';
+  }
+  if (DOM.logFormDate) {
+    DOM.logFormDate.classList.remove('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30');
+  }
+  if (DOM.logFileUploadBtn) {
+    DOM.logFileUploadBtn.classList.remove('border-emerald-500/50', 'text-emerald-300');
+    DOM.logFileUploadBtn.classList.add('border-zinc-700');
+  }
+}
+
 function markTaskCompleted(assetId) {
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
@@ -2264,7 +2322,11 @@ function markTaskCompleted(assetId) {
     if (DOM.logFormNotes && (!DOM.logFormNotes.value || DOM.logFormNotes.value.length < 5)) {
       DOM.logFormNotes.value = 'Task completed and verified. Photo proof of completed work attached below.';
     }
-    showToast('📷 Please attach a photo proof of completion, then submit the service log.', 'info');
+    // Set today as default Date Completed
+    if (DOM.logFormDate && !DOM.logFormDate.value) {
+      DOM.logFormDate.value = new Date().toISOString().split('T')[0];
+    }
+    activateCompletionMode();
   }, 300);
 }
 
@@ -2465,6 +2527,9 @@ function closeHistoryModal() {
   DOM.historyModal.classList.add('hidden');
   DOM.historyModal.classList.remove('flex');
   DOM.historyModal.style.display = 'none';
+  // Always reset completion mode when modal closes
+  deactivateCompletionMode();
+  if (DOM.newLogForm) DOM.newLogForm.classList.add('hidden');
 }
 
 function markTaskCompleted(assetId) {
@@ -2954,9 +3019,14 @@ function initEventListeners() {
   DOM.closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
   DOM.toggleNewLogFormBtn.addEventListener('click', () => {
     DOM.newLogForm.classList.toggle('hidden');
+    // Deactivate completion mode if manually toggled
+    if (DOM.newLogForm.classList.contains('hidden')) {
+      deactivateCompletionMode();
+    }
   });
   DOM.cancelLogFormBtn.addEventListener('click', () => {
     DOM.newLogForm.classList.add('hidden');
+    deactivateCompletionMode();
   });
   DOM.newLogForm.addEventListener('submit', handleNewLogSubmit);
 
@@ -2970,16 +3040,36 @@ function initEventListeners() {
         const base64Url = evt.target.result;
         DOM.logFormImage.value = base64Url;
         updateLogFormPreview(base64Url);
+        // Show proof-uploaded tick
+        if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
+        if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
         showToast('Service receipt image selected.', 'success');
       };
       reader.readAsDataURL(file);
     }
   });
 
-  // Image URL Input Listener for Log Form
-  DOM.logFormImage.addEventListener('input', e => {
-    updateLogFormPreview(e.target.value.trim());
-  });
+  // Live watcher: show proof tick when URL is typed/pasted in completion mode
+  if (DOM.logFormImage) {
+    DOM.logFormImage.addEventListener('input', () => {
+      const hasImage = DOM.logFormImage.value.trim().length > 5;
+      if (DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1') {
+        if (hasImage) {
+          if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
+          if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
+          updateLogFormPreview(DOM.logFormImage.value.trim());
+        } else {
+          if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+          if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
+        }
+      } else if (hasImage) {
+        updateLogFormPreview(DOM.logFormImage.value.trim());
+      }
+    });
+  }
+
+
+
 
   // Layout View Switcher (Table vs Card)
   DOM.viewTableViewBtn.addEventListener('click', () => {
