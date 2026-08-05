@@ -1515,37 +1515,6 @@ function initEventListeners() {
     });
   });
 
-  // Maintenance History Modal Actions
-  DOM.closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-  DOM.toggleNewLogFormBtn.addEventListener('click', () => {
-    DOM.newLogForm.classList.toggle('hidden');
-  });
-  DOM.cancelLogFormBtn.addEventListener('click', () => {
-    DOM.newLogForm.classList.add('hidden');
-  });
-  DOM.newLogForm.addEventListener('submit', handleNewLogSubmit);
-
-  // Local File Upload Listener for Maintenance Log Form
-  DOM.logFormFileInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (file) {
-      DOM.logFileLabel.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const base64Url = evt.target.result;
-        DOM.logFormImage.value = base64Url;
-        updateLogFormPreview(base64Url);
-        showToast('Service receipt image selected.', 'success');
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // Image URL Input Listener for Log Form
-  DOM.logFormImage.addEventListener('input', e => {
-    updateLogFormPreview(e.target.value.trim());
-  });
-
   // Layout View Switcher (Table vs Card)
   DOM.viewTableViewBtn.addEventListener('click', () => {
     AppState.currentView = 'table';
@@ -2702,6 +2671,34 @@ function handleNewLogSubmit(e) {
 
   const newStatus = DOM.logFormNewStatus.value;
   const serviceDate = DOM.logFormDate.value;
+  const imageUrl = DOM.logFormImage.value.trim();
+  const isCompletionMode = DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1';
+
+  // ─── UPFRONT VALIDATION (before any data changes) ────────────────────────
+
+  // 1. Date Completed is required in completion mode
+  if (isCompletionMode && !serviceDate) {
+    showToast('⚠️ Please set the Date Completed before submitting.', 'error');
+    if (DOM.logFormDate) {
+      DOM.logFormDate.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
+      DOM.logFormDate.focus();
+    }
+    return;
+  }
+
+  // 2. Proof photo is required in completion mode (or when marking Good with due date)
+  if ((isCompletionMode || (newStatus === 'Good' && asset.dueDate)) && !imageUrl) {
+    showToast('⚠️ A proof photo is required to mark this task as completed. Please upload or paste an image URL.', 'error');
+    if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
+    if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+    if (DOM.logFormImage) {
+      DOM.logFormImage.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
+      DOM.logFormImage.focus();
+    }
+    return;
+  }
+
+  // ─── ALL VALIDATION PASSED — now write data ───────────────────────────────
 
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -2711,7 +2708,7 @@ function handleNewLogSubmit(e) {
     statusBefore: asset.status,
     statusAfter: newStatus,
     cost: parseFloat(DOM.logFormCost.value) || 0,
-    imageUrl: DOM.logFormImage.value.trim(),
+    imageUrl: imageUrl,
     notes: DOM.logFormNotes.value.trim()
   };
 
@@ -2722,33 +2719,17 @@ function handleNewLogSubmit(e) {
   asset.lastMaintenance = serviceDate;
   asset.updatedAt = new Date().toISOString();
 
-  // ─── Completion validation ────────────────────────────────────────────────
-  // A task can only be marked Completed when ALL conditions are met:
-  //   1. Asset has a due date assigned by Admin
-  //   2. A proof image URL is provided
-  //   3. Status is being set to Good (task done)
-  if (newStatus === 'Good' && asset.dueDate) {
-    if (!logEntry.imageUrl) {
-      // Block completion — proof image required
-      showToast('⚠️ Please upload a proof image before marking this task as completed.', 'error');
-      // Revert the status change
-      asset.status = logEntry.statusBefore;
-      asset.lastMaintenance = asset.lastMaintenance;
-      asset.updatedAt = asset.updatedAt;
-      // Remove the log entry we just added
-      AppState.logs.shift();
-      StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
-      return;
-    }
-    // All conditions met — mark as Completed
+  // ─── Set isCompleted flag based on conditions ─────────────────────────────
+  if (newStatus === 'Good' && asset.dueDate && imageUrl) {
+    // Conditions fully met — officially Completed
     asset.isCompleted = true;
-    asset.completedImageUrl = logEntry.imageUrl;
+    asset.completedImageUrl = imageUrl;
   } else if (newStatus === 'Good' && !asset.dueDate) {
-    // No due date — changing to Good just means operational, NOT a task completion
+    // No due date — Good means operational only
     asset.isCompleted = false;
     asset.completedImageUrl = '';
   } else {
-    // Status changed to Maintenance Needed or Out of Service — reset completion
+    // Any non-Good status resets completion
     asset.isCompleted = false;
     asset.completedImageUrl = '';
   }
