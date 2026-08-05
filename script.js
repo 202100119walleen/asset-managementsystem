@@ -575,6 +575,8 @@ const DOM = {
   historyModalAssetMeta: document.getElementById('historyModalAssetMeta'),
   closeHistoryModalBtn: document.getElementById('closeHistoryModalBtn'),
   logFormWrapper: document.getElementById('logFormWrapper'),
+  markCompletedBanner: document.getElementById('markCompletedBanner'),
+  markCompletedBtn: document.getElementById('markCompletedBtn'),
   toggleNewLogFormBtn: document.getElementById('toggleNewLogFormBtn'),
   logPermissionNotice: document.getElementById('logPermissionNotice'),
   newLogForm: document.getElementById('newLogForm'),
@@ -1342,6 +1344,18 @@ function openHistoryModal(assetId) {
   DOM.historyModalAssetStatus.textContent = asset.status;
   DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
 
+  // Show / hide Mark as Completed quick action banner
+  if (DOM.markCompletedBanner) {
+    if (asset.status !== 'Good') {
+      DOM.markCompletedBanner.classList.remove('hidden');
+      if (DOM.markCompletedBtn) {
+        DOM.markCompletedBtn.onclick = () => markTaskCompleted(asset.id);
+      }
+    } else {
+      DOM.markCompletedBanner.classList.add('hidden');
+    }
+  }
+
   const isAuthorizedToComment = canUserAddComment(AppState.activeStore.code);
 
   if (isAuthorizedToComment) {
@@ -1377,6 +1391,61 @@ function closeHistoryModal() {
   DOM.historyModal.style.display = 'none';
 }
 
+function markTaskCompleted(assetId) {
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  const previousStatus = asset.status;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const authorName = AppState.currentUser.role === 'admin' 
+    ? `Admin (${AppState.currentUser.username})` 
+    : `Store (${AppState.currentUser.storeCode})`;
+
+  asset.status = 'Good';
+  asset.lastMaintenance = todayStr;
+  asset.updatedAt = new Date().toISOString();
+
+  const completionLog = {
+    id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+    assetId: asset.id,
+    date: todayStr,
+    technician: authorName,
+    statusBefore: previousStatus,
+    statusAfter: 'Good',
+    cost: 0,
+    imageUrl: '',
+    notes: `Task marked as COMPLETED by ${authorName}. Maintenance/service resolved and asset restored to Good operational condition.`
+  };
+
+  AppState.logs.unshift(completionLog);
+  StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+  StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+
+  refreshAppUI();
+
+  if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden') && DOM.logFormAssetId.value === assetId) {
+    DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold badge-good`;
+    DOM.historyModalAssetStatus.textContent = 'Good';
+    if (DOM.markCompletedBanner) {
+      DOM.markCompletedBanner.classList.add('hidden');
+    }
+    renderTimelineLogs(asset.id);
+  }
+
+  showToast(`Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
+}
+
+function replyToComment(author) {
+  if (!canUserAddComment(AppState.activeStore.code)) {
+    showToast('Unauthorized: Only Admins or assigned Store can reply.', 'error');
+    return;
+  }
+
+  DOM.newLogForm.classList.remove('hidden');
+  DOM.logFormNotes.value = `@${author}: `;
+  DOM.logFormNotes.focus();
+}
+
 function renderTimelineLogs(assetId) {
   const logs = AppState.logs.filter(l => l.assetId === assetId).sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -1393,6 +1462,20 @@ function renderTimelineLogs(assetId) {
     if (log.statusAfter === 'Maintenance Needed') dotClass = 'maint';
     if (log.statusAfter === 'Out of Service') dotClass = 'oos';
 
+    const isCompleted = log.statusAfter === 'Good' && log.statusBefore !== 'Good';
+    const isCompletedBadge = isCompleted 
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><i class="fa-solid fa-check text-[9px]"></i> COMPLETED</span>`
+      : '';
+
+    const isAuthorAdmin = (log.technician || '').toLowerCase().includes('admin');
+    const isAuthorStore = (log.technician || '').toLowerCase().includes('store');
+
+    const roleBadge = isAuthorAdmin 
+      ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[9px] font-bold">ADMIN</span>`
+      : isAuthorStore 
+      ? `<span class="px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-[9px] font-bold">STORE</span>`
+      : '';
+
     const photoImg = log.imageUrl 
       ? `<div class="mt-3"><img src="${log.imageUrl}" alt="Maintenance Photo" class="w-32 h-20 object-cover rounded-lg border border-zinc-700"></div>`
       : '';
@@ -1402,18 +1485,28 @@ function renderTimelineLogs(assetId) {
         <div class="timeline-dot ${dotClass}"></div>
         <div class="bg-zinc-950/70 border border-zinc-800 rounded-xl p-4 space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-bold text-white font-mono">${log.date}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white font-mono">${log.date}</span>
+              ${isCompletedBadge}
+            </div>
             <span class="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">
               Cost: $${(log.cost || 0).toFixed(2)}
             </span>
           </div>
 
-          <div class="text-xs text-zinc-300 flex items-center gap-2">
-            <span class="text-zinc-400">Author / Tech:</span>
-            <strong class="text-zinc-200">${escapeHTML(log.technician || 'N/A')}</strong>
+          <div class="text-xs text-zinc-300 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-zinc-400">Author / Tech:</span>
+              <strong class="text-zinc-200">${escapeHTML(log.technician || 'N/A')}</strong>
+              ${roleBadge}
+            </div>
+
+            <button type="button" onclick="replyToComment('${escapeHTML(log.technician || '')}')" class="text-[11px] text-zinc-400 hover:text-amber-400 transition-colors flex items-center gap-1 font-medium">
+              <i class="fa-solid fa-reply text-[9px]"></i> Reply
+            </button>
           </div>
 
-          <div class="text-xs text-zinc-300 bg-zinc-900 p-2.5 rounded-lg border border-zinc-800 mt-2 whitespace-pre-line">
+          <div class="text-xs text-zinc-300 bg-zinc-900 p-2.5 rounded-lg border border-zinc-800 mt-2 whitespace-pre-line leading-relaxed">
             ${escapeHTML(log.notes)}
           </div>
 
@@ -1783,6 +1876,8 @@ window.confirmDeleteAsset = confirmDeleteAsset;
 window.openEditStoreModal = openEditStoreModal;
 window.confirmDeleteStore = confirmDeleteStore;
 window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
+window.markTaskCompleted = markTaskCompleted;
+window.replyToComment = replyToComment;
 
 // Bootstrap Application
 document.addEventListener('DOMContentLoaded', () => {
