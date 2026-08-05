@@ -303,6 +303,42 @@ class StorageManager {
         StorageManager.saveNotifications(mappedNotifs, false);
         if (typeof renderNotifications === 'function') renderNotifications();
       }
+
+      // 4. Sync Maintenance Logs from Supabase for Active Store
+      if (activeCode) {
+        const { data: remoteLogs, error: logsErr } = await supabaseClient
+          .from('maintenance_logs')
+          .select('*')
+          .eq('store_code', activeCode)
+          .order('created_at', { ascending: false });
+
+        if (!logsErr && remoteLogs && remoteLogs.length > 0) {
+          const mappedLogs = remoteLogs.map(l => ({
+            id: l.id,
+            assetId: l.asset_id,
+            date: l.date,
+            technician: l.technician,
+            statusBefore: l.status_before,
+            statusAfter: l.status_after,
+            cost: parseFloat(l.cost) || 0,
+            imageUrl: l.image_url,
+            notes: l.notes
+          }));
+
+          const localLogs = StorageManager.getLogs(activeCode);
+          const mergedLogs = [...mappedLogs];
+          localLogs.forEach(local => {
+            if (!mergedLogs.some(m => m.id === local.id)) {
+              mergedLogs.push(local);
+            }
+          });
+
+          StorageManager.saveLogs(activeCode, mergedLogs, false);
+          if (AppState.activeStore && AppState.activeStore.code === activeCode) {
+            AppState.logs = mergedLogs;
+          }
+        }
+      }
     } catch (e) {
       console.log('Supabase sync note:', e.message);
     }
@@ -2019,17 +2055,6 @@ function confirmDeleteAsset(assetId) {
 }
 
 
-// ==========================================
-// 9. MAINTENANCE LOG & COMMENT AUTHORIZATION
-// ==========================================
-
-function canUserAddComment(storeCode) {
-  if (!AppState.currentUser) return false;
-  if (AppState.currentUser.role === 'admin') return true;
-  if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
-  return false;
-}
-
 function canUserAddComment(storeCode) {
   if (!AppState.currentUser) return false;
   if (AppState.currentUser.role === 'admin') return true;
@@ -2069,9 +2094,48 @@ function updateLogFormPreview(url) {
   }
 }
 
-function openHistoryModal(assetId) {
+async function openHistoryModal(assetId) {
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
+
+  // Dynamically sync latest maintenance logs from Supabase for shared Store & Admin thread view
+  if (supabaseClient) {
+    try {
+      const { data: remoteLogs, error } = await supabaseClient
+        .from('maintenance_logs')
+        .select('*')
+        .eq('asset_id', assetId)
+        .order('created_at', { ascending: false });
+
+      if (!error && remoteLogs) {
+        const mappedRemote = remoteLogs.map(l => ({
+          id: l.id,
+          assetId: l.asset_id,
+          date: l.date,
+          technician: l.technician,
+          statusBefore: l.status_before,
+          statusAfter: l.status_after,
+          cost: parseFloat(l.cost) || 0,
+          imageUrl: l.image_url,
+          notes: l.notes
+        }));
+
+        const storeCode = AppState.activeStore.code;
+        const currentLogs = StorageManager.getLogs(storeCode);
+        const merged = [...mappedRemote];
+        currentLogs.forEach(c => {
+          if (c.assetId !== assetId && !merged.some(m => m.id === c.id)) {
+            merged.push(c);
+          }
+        });
+
+        StorageManager.saveLogs(storeCode, merged, false);
+        AppState.logs = merged;
+      }
+    } catch (e) {
+      console.log('Log sync note:', e);
+    }
+  }
 
   DOM.historyModalAssetName.textContent = asset.name;
   DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
