@@ -1912,11 +1912,13 @@ function renderAssetDirectory() {
 
   if (AppState.currentView === 'table') {
     DOM.tableViewContainer.classList.remove('hidden');
+    DOM.cardViewContainer.classList.remove('grid');
     DOM.cardViewContainer.classList.add('hidden');
     renderTableView(filtered);
   } else {
     DOM.tableViewContainer.classList.add('hidden');
     DOM.cardViewContainer.classList.remove('hidden');
+    DOM.cardViewContainer.classList.add('grid');
     renderCardView(filtered);
   }
 }
