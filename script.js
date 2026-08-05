@@ -1683,16 +1683,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getTaskDueStatus(asset) {
-  // Task is only completed if explicitly marked isCompleted OR status is Good with no due date or lastMaintenance on/after dueDate
-  const isExplicitlyCompleted = Boolean(asset.isCompleted);
-  const isMaintenanceMet = Boolean(
-    asset.status === 'Good' && 
-    asset.lastMaintenance && 
-    asset.dueDate && 
-    new Date(asset.lastMaintenance) >= new Date(asset.dueDate)
-  );
-
-  if (isExplicitlyCompleted || isMaintenanceMet) {
+  // ─── RULE 1: Completed overrides EVERYTHING ───────────────────────────────
+  // A task is Completed ONLY when isCompleted flag is explicitly set to true.
+  if (asset.isCompleted) {
     return {
       statusKey: 'Completed',
       label: 'Completed',
@@ -1704,6 +1697,7 @@ function getTaskDueStatus(asset) {
     };
   }
 
+  // ─── RULE 2: No due date → show raw asset condition, NO date-based status ──
   if (!asset.dueDate) {
     if (asset.status === 'Out of Service') {
       return {
@@ -1712,8 +1706,8 @@ function getTaskDueStatus(asset) {
         icon: '🔴',
         badgeClass: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
         dotClass: 'bg-rose-400',
-        daysSubtext: 'Inactive / OOS',
-        priority: 2
+        daysSubtext: 'Inactive / Out of Service',
+        priority: 6
       };
     }
     if (asset.status === 'Maintenance Needed') {
@@ -1723,32 +1717,38 @@ function getTaskDueStatus(asset) {
         icon: '🟡',
         badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
         dotClass: 'bg-amber-400',
-        daysSubtext: 'No due date set',
-        priority: 4
+        daysSubtext: 'Awaiting due date from Admin',
+        priority: 6
       };
     }
+    // Good condition, no due date = simply Operational
     return {
-      statusKey: 'Completed',
-      label: 'Good / Operational',
+      statusKey: 'Good',
+      label: 'Good',
       icon: '🟢',
       badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
       dotClass: 'bg-emerald-400',
       daysSubtext: 'Operational',
-      priority: 1
+      priority: 6
     };
   }
 
-  // Calculate day difference normalized to midnight
+  // ─── RULE 3: Due-date based statuses (only when dueDate is set) ───────────
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const dueParts = asset.dueDate.split('-');
-  const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
+  const due = new Date(
+    parseInt(dueParts[0], 10),
+    parseInt(dueParts[1], 10) - 1,
+    parseInt(dueParts[2], 10)
+  );
   due.setHours(0, 0, 0, 0);
 
   const diffTime = due.getTime() - today.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
+  // Priority 2: Overdue (1+ day past due date)
   if (diffDays < 0) {
     const overdueDays = Math.abs(diffDays);
     return {
@@ -1760,7 +1760,10 @@ function getTaskDueStatus(asset) {
       daysSubtext: `Overdue by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`,
       priority: 2
     };
-  } else if (diffDays === 0) {
+  }
+
+  // Priority 3: Due Today (0 days)
+  if (diffDays === 0) {
     return {
       statusKey: 'Due Today',
       label: 'Due Today',
@@ -1770,7 +1773,10 @@ function getTaskDueStatus(asset) {
       daysSubtext: 'Due Today',
       priority: 3
     };
-  } else if (diffDays <= 7) {
+  }
+
+  // Priority 4: Due Soon (1–7 days)
+  if (diffDays <= 7) {
     return {
       statusKey: 'Due Soon',
       label: 'Due Soon',
@@ -1780,17 +1786,18 @@ function getTaskDueStatus(asset) {
       daysSubtext: `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`,
       priority: 4
     };
-  } else {
-    return {
-      statusKey: 'Scheduled',
-      label: 'Scheduled',
-      icon: '🔵',
-      badgeClass: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-      dotClass: 'bg-blue-400',
-      daysSubtext: `${diffDays} days remaining`,
-      priority: 5
-    };
   }
+
+  // Priority 5: Scheduled (8+ days away)
+  return {
+    statusKey: 'Scheduled',
+    label: 'Scheduled',
+    icon: '🔵',
+    badgeClass: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+    dotClass: 'bg-blue-400',
+    daysSubtext: `${diffDays} days remaining`,
+    priority: 5
+  };
 }
 
 function getStatusBadgeHTML(asset) {
@@ -2650,13 +2657,35 @@ function handleNewLogSubmit(e) {
   asset.lastMaintenance = serviceDate;
   asset.updatedAt = new Date().toISOString();
 
-  // Mark as officially completed if status set to Good and there's a photo proof attached
-  if (newStatus === 'Good' && logEntry.imageUrl) {
+  // ─── Completion validation ────────────────────────────────────────────────
+  // A task can only be marked Completed when ALL conditions are met:
+  //   1. Asset has a due date assigned by Admin
+  //   2. A proof image URL is provided
+  //   3. Status is being set to Good (task done)
+  if (newStatus === 'Good' && asset.dueDate) {
+    if (!logEntry.imageUrl) {
+      // Block completion — proof image required
+      showToast('⚠️ Please upload a proof image before marking this task as completed.', 'error');
+      // Revert the status change
+      asset.status = logEntry.statusBefore;
+      asset.lastMaintenance = asset.lastMaintenance;
+      asset.updatedAt = asset.updatedAt;
+      // Remove the log entry we just added
+      AppState.logs.shift();
+      StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+      return;
+    }
+    // All conditions met — mark as Completed
     asset.isCompleted = true;
     asset.completedImageUrl = logEntry.imageUrl;
   } else if (newStatus === 'Good' && !asset.dueDate) {
-    // No due date — 'Good' just means operational, not a completed task
+    // No due date — changing to Good just means operational, NOT a task completion
     asset.isCompleted = false;
+    asset.completedImageUrl = '';
+  } else {
+    // Status changed to Maintenance Needed or Out of Service — reset completion
+    asset.isCompleted = false;
+    asset.completedImageUrl = '';
   }
 
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
