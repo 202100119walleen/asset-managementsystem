@@ -2324,9 +2324,7 @@ function updateCompletionChecklist() {
   }
 
   const dateVal = DOM.logFormDate ? DOM.logFormDate.value : '';
-  const hasDate = Boolean(dateVal);
-  const isDateEarlierThanDue = Boolean(hasDate && asset && asset.dueDate && dateVal < asset.dueDate);
-  const isDateValid = hasDate && !isDateEarlierThanDue;
+  const isDateValid = Boolean(dateVal);
 
   const hasName = Boolean(DOM.logFormTechnician && DOM.logFormTechnician.value.trim().length > 0);
   const hasPhoto = Boolean(DOM.logFormImage && DOM.logFormImage.value.trim().length > 5);
@@ -2344,11 +2342,7 @@ function updateCompletionChecklist() {
     }
   }
 
-  const dateFailMsg = !hasDate 
-    ? 'Date Completed' 
-    : (isDateEarlierThanDue ? `Cannot be before scheduled date (${asset.dueDate})` : 'Date Completed');
-
-  setCheck(DOM.checklistDate, DOM.checklistDateIcon, isDateValid, 'Date Completed', dateFailMsg);
+  setCheck(DOM.checklistDate, DOM.checklistDateIcon, isDateValid, 'Date Completed', 'Date Completed');
   setCheck(DOM.checklistName, DOM.checklistNameIcon, hasName, 'Responsible', 'Responsible');
   setCheck(DOM.checklistPhoto, DOM.checklistPhotoIcon, hasPhoto, 'Proof Photo', 'Proof Photo');
 }
@@ -2486,12 +2480,9 @@ function markTaskCompleted(assetId) {
       DOM.logFormNotes.value = 'Task completed and verified. Photo proof of completed work attached below.';
     }
     const todayStr = new Date().toISOString().split('T')[0];
-    const initialDate = asset.dueDate && asset.dueDate > todayStr ? asset.dueDate : todayStr;
     if (DOM.logFormDate) {
-      DOM.logFormDate.value = initialDate;
-      if (asset.dueDate && AppState.currentUser.role !== 'admin') {
-        DOM.logFormDate.min = asset.dueDate;
-      }
+      DOM.logFormDate.value = todayStr;
+      DOM.logFormDate.removeAttribute('min');
     }
     activateCompletionMode();
   }, 300);
@@ -2863,16 +2854,9 @@ function handleNewLogSubmit(e) {
 
   // ─── UPFRONT VALIDATION (Mandatory ONLY for Store Accounts; Optional for Admin) ───
   if (!isUserAdmin) {
-    // 1a. Date Completed is required for Store in completion mode
+    // 1. Date Completed is required for Store in completion mode
     if (isCompletionMode && !serviceDate) {
       showToast('⚠️ Cannot complete task: Please set the Date Completed.', 'error');
-      shakeField(DOM.logFormDate);
-      return;
-    }
-
-    // 1b. Date Completed cannot be earlier than scheduled due date
-    if (asset.dueDate && serviceDate && serviceDate < asset.dueDate) {
-      showToast(`⚠️ Invalid Completion Date: Cannot set date to ${serviceDate}. Completion date cannot be earlier than the scheduled due date (${asset.dueDate}).`, 'error');
       shakeField(DOM.logFormDate);
       return;
     }
