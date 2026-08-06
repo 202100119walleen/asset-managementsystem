@@ -2567,72 +2567,6 @@ function closeHistoryModal() {
   if (DOM.newLogForm) DOM.newLogForm.classList.add('hidden');
 }
 
-function markTaskCompleted(assetId) {
-  const asset = AppState.assets.find(a => a.id === assetId);
-  if (!asset) return;
-
-  const previousStatus = asset.status;
-  const todayStr = new Date().toISOString().split('T')[0];
-  const authorName = AppState.currentUser.role === 'admin' 
-    ? `Admin (${AppState.currentUser.username})` 
-    : `Store (${AppState.currentUser.storeCode})`;
-
-  asset.status = 'Good';
-  asset.lastMaintenance = todayStr;
-  asset.updatedAt = new Date().toISOString();
-
-  const completionLog = {
-    id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
-    assetId: asset.id,
-    date: todayStr,
-    technician: authorName,
-    statusBefore: previousStatus,
-    statusAfter: 'Good',
-    cost: 0,
-    imageUrl: '',
-    notes: `Task marked as COMPLETED by ${authorName}. Maintenance/service resolved and asset restored to Good operational condition.`
-  };
-
-  AppState.logs.unshift(completionLog);
-  StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
-  StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
-
-  // Trigger Notification for completion
-  if (AppState.currentUser.role === 'admin') {
-    StorageManager.addNotification({
-      recipientRole: 'store',
-      recipientStoreCode: AppState.activeStore.code,
-      title: 'Task Marked as Completed',
-      message: `Admin ${AppState.currentUser.username} marked maintenance task on "${asset.name}" as COMPLETED.`,
-      assetId: asset.id,
-      storeCode: AppState.activeStore.code,
-      type: 'status'
-    });
-  } else {
-    StorageManager.addNotification({
-      recipientRole: 'admin',
-      recipientStoreCode: null,
-      title: 'Store Completed Maintenance Task',
-      message: `Store ${AppState.activeStore.code} marked maintenance task on "${asset.name}" as COMPLETED.`,
-      assetId: asset.id,
-      storeCode: AppState.activeStore.code,
-      type: 'status'
-    });
-  }
-
-  refreshAppUI();
-
-  if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden') && DOM.logFormAssetId.value === assetId) {
-    DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold badge-good`;
-    DOM.historyModalAssetStatus.textContent = 'Good';
-    if (DOM.markCompletedBanner) {
-      DOM.markCompletedBanner.classList.add('hidden');
-    }
-    renderTimelineLogs(asset.id);
-  }
-
-  showToast(`Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
-}
 
 function replyToComment(author) {
   if (!canUserAddComment(AppState.activeStore.code)) {
@@ -2740,38 +2674,39 @@ function handleNewLogSubmit(e) {
   const imageUrl = DOM.logFormImage.value.trim();
   const isCompletionMode = DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1';
 
+  // Helper function to trigger shake animation on missing input field
+  function shakeField(el) {
+    if (!el) return;
+    el.classList.remove('field-shake');
+    void el.offsetWidth; // Force reflow
+    el.classList.add('field-shake', 'border-rose-500', 'ring-1', 'ring-rose-500/40');
+    el.focus();
+    setTimeout(() => el.classList.remove('field-shake'), 500);
+  }
+
   // ─── UPFRONT VALIDATION (before any data changes) ────────────────────────
 
   // 1. Date Completed is required in completion mode
   if (isCompletionMode && !serviceDate) {
-    showToast('⚠️ Please set the Date Completed before submitting.', 'error');
-    if (DOM.logFormDate) {
-      DOM.logFormDate.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
-      DOM.logFormDate.focus();
-    }
+    showToast('⚠️ Cannot complete task: Please set the Date Completed.', 'error');
+    shakeField(DOM.logFormDate);
     return;
   }
 
   // 2. Proof photo is required in completion mode (or when marking Good with due date)
   if ((isCompletionMode || (newStatus === 'Good' && asset.dueDate)) && !imageUrl) {
-    showToast('⚠️ A proof photo is required to mark this task as completed. Please upload or paste an image URL.', 'error');
+    showToast('⚠️ Cannot complete task: A proof photo is required. Please upload or link a photo.', 'error');
     if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
     if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
-    if (DOM.logFormImage) {
-      DOM.logFormImage.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
-      DOM.logFormImage.focus();
-    }
+    shakeField(DOM.logFormImage);
     return;
   }
 
   // 3. Name is required in completion mode
   if (isCompletionMode && !DOM.logFormTechnician.value.trim()) {
-    showToast('⚠️ Please enter the name of the person responsible for completing this task.', 'error');
+    showToast('⚠️ Cannot complete task: Please enter the responsible person\'s name.', 'error');
     if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.remove('hidden');
-    if (DOM.logFormTechnician) {
-      DOM.logFormTechnician.classList.add('border-rose-500', 'ring-1', 'ring-rose-500/40');
-      DOM.logFormTechnician.focus();
-    }
+    shakeField(DOM.logFormTechnician);
     return;
   }
 

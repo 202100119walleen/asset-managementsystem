@@ -16,6 +16,20 @@
   background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 100%);
 }
 
+/* Shake animation for required field validation feedback */
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(4px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+.field-shake {
+  animation: fieldShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 /* Custom Minimalist Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
