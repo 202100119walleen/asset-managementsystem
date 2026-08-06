@@ -2007,7 +2007,7 @@ function renderTableView(assets) {
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
     const thumbnail = asset.imageUrl 
-      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700">`
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" onclick="openImageLightbox('${escapeHTML(asset.imageUrl)}', '${escapeHTML(asset.name)}')" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700 cursor-pointer hover:border-amber-400 hover:scale-105 transition-all" title="Click to view & download image">`
       : `<div class="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500"><i class="fa-solid fa-box text-sm"></i></div>`;
 
     const adminActionButtons = isUserAdmin ? `
@@ -2074,7 +2074,7 @@ function renderCardView(assets) {
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
     const thumbnail = asset.imageUrl 
-      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" class="w-full h-40 object-cover bg-zinc-800">`
+      ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" onclick="openImageLightbox('${escapeHTML(asset.imageUrl)}', '${escapeHTML(asset.name)}')" class="w-full h-40 object-cover bg-zinc-800 cursor-pointer hover:opacity-90 transition-opacity" title="Click to view & download image">`
       : `<div class="w-full h-40 bg-zinc-800/80 flex items-center justify-center text-zinc-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
 
     const adminCardActions = isUserAdmin ? `
@@ -2555,10 +2555,42 @@ function toggleNewLogForm(e) {
 function updateLogFormPreview(url) {
   if (url) {
     DOM.logFormPreviewBox.classList.remove('hidden');
-    DOM.logFormPreviewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+    DOM.logFormPreviewBox.innerHTML = `
+      <div class="relative w-full h-36 group cursor-pointer overflow-hidden rounded-lg border border-zinc-800" onclick="openImageLightbox('${escapeHTML(url)}', 'Photo Preview')">
+        <img src="${url}" class="w-full h-full object-contain bg-zinc-950/90">
+        <div class="absolute inset-0 bg-zinc-950/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="bg-emerald-500 text-zinc-950 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-expand text-xs"></i> Click to View &amp; Download Image
+          </span>
+        </div>
+      </div>
+    `;
   } else {
     DOM.logFormPreviewBox.classList.add('hidden');
     DOM.logFormPreviewBox.innerHTML = '';
+  }
+}
+
+function updateAssetFormPreview(url) {
+  if (url) {
+    if (DOM.assetFormPreviewBox) {
+      DOM.assetFormPreviewBox.classList.remove('hidden');
+      DOM.assetFormPreviewBox.innerHTML = `
+        <div class="relative w-full h-36 group cursor-pointer overflow-hidden rounded-lg border border-zinc-800" onclick="openImageLightbox('${escapeHTML(url)}', 'Asset Photo Preview')">
+          <img src="${url}" class="w-full h-full object-contain bg-zinc-950/90">
+          <div class="absolute inset-0 bg-zinc-950/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span class="bg-emerald-500 text-zinc-950 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-lg">
+              <i class="fa-solid fa-expand text-xs"></i> Click to View &amp; Download Image
+            </span>
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    if (DOM.assetFormPreviewBox) {
+      DOM.assetFormPreviewBox.classList.add('hidden');
+      DOM.assetFormPreviewBox.innerHTML = '';
+    }
   }
 }
 
@@ -2636,11 +2668,14 @@ async function openHistoryModal(assetId) {
           <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
           <div class="flex-1">
             <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work on file.</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work attached below (Click to view &amp; download).</p>
           </div>
-          <a href="${asset.completedImageUrl}" target="_blank" class="flex-shrink-0">
-            <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 hover:border-emerald-400 transition-colors cursor-pointer">
-          </a>
+          <div onclick="openImageLightbox('${escapeHTML(asset.completedImageUrl)}', 'Completion Proof Photo')" class="flex-shrink-0 cursor-pointer group relative" title="Click to view & download">
+            <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 group-hover:border-emerald-400 transition-colors">
+            <div class="absolute inset-0 bg-zinc-950/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <i class="fa-solid fa-download text-white text-xs"></i>
+            </div>
+          </div>
         </div>
       `;
     } else if (dueStatusModal.statusKey !== 'Completed' && !asset.dueDate) {
@@ -2738,7 +2773,12 @@ function renderTimelineLogs(assetId) {
       : '';
 
     const photoImg = log.imageUrl 
-      ? `<div class="mt-3"><img src="${log.imageUrl}" alt="Maintenance Photo" class="w-32 h-20 object-cover rounded-lg border border-zinc-700"></div>`
+      ? `<div class="mt-3 relative inline-block group">
+          <img src="${log.imageUrl}" alt="Maintenance Photo" onclick="openImageLightbox('${escapeHTML(log.imageUrl)}', 'Service Log Photo — ${escapeHTML(log.date)}')" class="w-36 h-24 object-cover rounded-xl border border-zinc-700 cursor-pointer hover:border-amber-400 hover:scale-[1.02] transition-all shadow-md">
+          <div onclick="openImageLightbox('${escapeHTML(log.imageUrl)}', 'Service Log Photo — ${escapeHTML(log.date)}')" class="absolute bottom-1.5 right-1.5 bg-zinc-950/85 hover:bg-emerald-500 text-white hover:text-zinc-950 text-[10px] font-bold px-2 py-0.5 rounded-md cursor-pointer flex items-center gap-1 transition-colors backdrop-blur-sm border border-zinc-700">
+            <i class="fa-solid fa-expand text-[9px]"></i> View &amp; Download
+          </div>
+        </div>`
       : '';
 
     return `
@@ -2941,11 +2981,14 @@ function handleNewLogSubmit(e) {
         <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
         <div class="flex-1">
           <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
-          <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work on file.</p>
+          <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work attached below (Click to view &amp; download).</p>
         </div>
-        ${asset.completedImageUrl ? `<a href="${asset.completedImageUrl}" target="_blank" class="flex-shrink-0">
-          <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 hover:border-emerald-400 transition-colors cursor-pointer">
-        </a>` : ''}
+        ${asset.completedImageUrl ? `<div onclick="openImageLightbox('${escapeHTML(asset.completedImageUrl)}', 'Completion Proof Photo')" class="flex-shrink-0 cursor-pointer group relative" title="Click to view & download">
+          <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 group-hover:border-emerald-400 transition-colors">
+          <div class="absolute inset-0 bg-zinc-950/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa-solid fa-download text-white text-xs"></i>
+          </div>
+        </div>` : ''}
       </div>
     `;
     deactivateCompletionMode();
@@ -3037,6 +3080,40 @@ function compressAndBase64Image(file, callback, maxWidth = 800, quality = 0.75) 
   };
   reader.readAsDataURL(file);
 }
+
+// Image Lightbox Viewer & Downloader Functions
+function openImageLightbox(src, title = 'Image Preview') {
+  if (!src) return;
+  const modal = document.getElementById('imageLightboxModal');
+  const imgEl = document.getElementById('lightboxImage');
+  const titleEl = document.getElementById('lightboxTitle');
+  const downloadBtn = document.getElementById('lightboxDownloadBtn');
+  if (!modal || !imgEl) return;
+
+  imgEl.src = src;
+  if (titleEl) titleEl.textContent = title;
+
+  if (downloadBtn) {
+    downloadBtn.href = src;
+    const isBase64 = src.startsWith('data:');
+    const ext = isBase64 ? (src.includes('png') ? 'png' : 'jpg') : 'jpg';
+    downloadBtn.download = `asset_photo_${Date.now()}.${ext}`;
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeImageLightbox() {
+  const modal = document.getElementById('imageLightboxModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+window.openImageLightbox = openImageLightbox;
+window.closeImageLightbox = closeImageLightbox;
 
 
 // ==========================================
@@ -3246,7 +3323,11 @@ function initEventListeners() {
   }
 
   // Backdrop overlay click closes modals
-  [DOM.adminStoreManagerModal, DOM.storeModal, DOM.assetModal, DOM.historyModal].forEach(modal => {
+  const lightboxModal = document.getElementById('imageLightboxModal');
+  const modalsToClose = [DOM.adminStoreManagerModal, DOM.storeModal, DOM.assetModal, DOM.historyModal];
+  if (lightboxModal) modalsToClose.push(lightboxModal);
+
+  modalsToClose.forEach(modal => {
     modal.addEventListener('click', e => {
       if (e.target === modal) {
         modal.classList.add('hidden');
@@ -3259,6 +3340,7 @@ function initEventListeners() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeConfirmModal();
+      closeImageLightbox();
       closeAdminStoreManagerModal();
       closeCreateStoreModal();
       closeAssetModal();
