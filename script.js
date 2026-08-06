@@ -33,8 +33,7 @@ const DEFAULT_ADMINS = [
 
 const DEFAULT_STORES = [
   { code: 'STORE-01', name: 'Downtown Branch Store', password: 'pass123' },
-  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' },
-  { code: 'HQ-MAIN', name: 'Corporate Headquarters', password: 'admin123' }
+  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' }
 ];
 
 const SEED_ASSETS_STORE_01 = [
@@ -219,6 +218,22 @@ class StorageManager {
     if (!localStorage.getItem('ams_stores')) {
       localStorage.setItem('ams_stores', JSON.stringify(DEFAULT_STORES));
     }
+    
+    // Purge HQ-MAIN if it exists in local storage
+    let stores = StorageManager.getStores();
+    if (stores.some(s => s.code === 'HQ-MAIN')) {
+      stores = stores.filter(s => s.code !== 'HQ-MAIN');
+      localStorage.setItem('ams_stores', JSON.stringify(stores));
+    }
+
+    localStorage.removeItem('ams_assets_HQ-MAIN');
+    localStorage.removeItem('ams_logs_HQ-MAIN');
+
+    if (supabaseClient) {
+      supabaseClient.from('stores').delete().eq('code', 'HQ-MAIN').catch(err => console.log('Purge HQ-MAIN store note:', err));
+      supabaseClient.from('assets').delete().eq('store_code', 'HQ-MAIN').catch(err => console.log('Purge HQ-MAIN assets note:', err));
+    }
+
     // Seed Store 01 if missing locally
     if (!localStorage.getItem('ams_assets_STORE-01')) {
       localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
@@ -228,11 +243,6 @@ class StorageManager {
     if (!localStorage.getItem('ams_assets_STORE-02')) {
       localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
       localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
-    }
-    // Seed HQ if missing locally
-    if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
-      localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
-      localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
     }
     // Seed Notifications if missing locally
     if (!localStorage.getItem('ams_notifications')) {
