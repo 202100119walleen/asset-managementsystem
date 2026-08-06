@@ -1001,13 +1001,11 @@ function openAdminStoreManagerModal() {
   renderAdminStoreTable();
   DOM.adminStoreManagerModal.classList.remove('hidden');
   DOM.adminStoreManagerModal.classList.add('flex');
-  DOM.adminStoreManagerModal.style.display = 'flex';
 }
 
 function closeAdminStoreManagerModal() {
   DOM.adminStoreManagerModal.classList.add('hidden');
   DOM.adminStoreManagerModal.classList.remove('flex');
-  DOM.adminStoreManagerModal.style.display = 'none';
 }
 
 function renderAdminStoreTable() {
@@ -1071,7 +1069,6 @@ function openCreateStoreModal() {
   
   DOM.storeModal.classList.remove('hidden');
   DOM.storeModal.classList.add('flex');
-  DOM.storeModal.style.display = 'flex';
 }
 
 function openEditStoreModal(storeCode) {
@@ -1094,13 +1091,11 @@ function openEditStoreModal(storeCode) {
 
   DOM.storeModal.classList.remove('hidden');
   DOM.storeModal.classList.add('flex');
-  DOM.storeModal.style.display = 'flex';
 }
 
 function closeCreateStoreModal() {
   DOM.storeModal.classList.add('hidden');
   DOM.storeModal.classList.remove('flex');
-  DOM.storeModal.style.display = 'none';
 }
 
 function handleStoreFormSubmit(e) {
@@ -1149,17 +1144,22 @@ function confirmDeleteStore(storeCode) {
 
   const stores = StorageManager.getStores();
   if (stores.length <= 1) {
-    alert('Cannot delete the last remaining store account.');
+    showToast('Cannot delete the last remaining store account.', 'error');
     return;
   }
 
-  if (confirm(`Are you sure you want to delete store account "${storeCode}"? This will delete all associated asset data.`)) {
-    StorageManager.deleteStore(storeCode);
-    renderStoreAccountsList();
-    renderAdminStoreTable();
-    renderHeaderStoreSelector();
-    showToast(`Store "${storeCode}" deleted.`, 'info');
-  }
+  showConfirmModal(
+    `Delete store "${storeCode}"? This will permanently remove all its assets and data and cannot be undone.`,
+    () => {
+      StorageManager.deleteStore(storeCode);
+      renderStoreAccountsList();
+      renderAdminStoreTable();
+      renderHeaderStoreSelector();
+      showToast(`Store "${storeCode}" deleted.`, 'info');
+    },
+    'Delete Store',
+    'fa-trash'
+  );
 }
 
 
@@ -2082,7 +2082,6 @@ function openAddAssetModal() {
   
   DOM.assetModal.classList.remove('hidden');
   DOM.assetModal.classList.add('flex');
-  DOM.assetModal.style.display = 'flex';
 }
 
 function openEditAssetModal(assetId) {
@@ -2112,13 +2111,11 @@ function openEditAssetModal(assetId) {
 
   DOM.assetModal.classList.remove('hidden');
   DOM.assetModal.classList.add('flex');
-  DOM.assetModal.style.display = 'flex';
 }
 
 function closeAssetModal() {
   DOM.assetModal.classList.add('hidden');
   DOM.assetModal.classList.remove('flex');
-  DOM.assetModal.style.display = 'none';
 }
 
 function handleAssetFormSubmit(e) {
@@ -2366,22 +2363,27 @@ function confirmDeleteAsset(assetId) {
   const asset = AppState.assets.find(a => a.id === assetId);
   if (!asset) return;
 
-  if (confirm(`Are you sure you want to delete asset "${asset.name}" (${asset.serial})?`)) {
-    AppState.assets = AppState.assets.filter(a => a.id !== assetId);
-    AppState.logs = AppState.logs.filter(l => l.assetId !== assetId);
+  showConfirmModal(
+    `Delete asset "${asset.name}" (${asset.serial})? This will also remove all related maintenance logs. This cannot be undone.`,
+    () => {
+      AppState.assets = AppState.assets.filter(a => a.id !== assetId);
+      AppState.logs = AppState.logs.filter(l => l.assetId !== assetId);
 
-    StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
-    StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+      StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+      StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
-    if (supabaseClient) {
-      supabaseClient.from('assets').delete().eq('id', assetId).then(({ error }) => {
-        if (error) console.log('Supabase asset delete status:', error.message);
-      }).catch(err => console.log('Supabase asset delete note:', err));
-    }
+      if (supabaseClient) {
+        supabaseClient.from('assets').delete().eq('id', assetId).then(({ error }) => {
+          if (error) console.log('Supabase asset delete status:', error.message);
+        }).catch(err => console.log('Supabase asset delete note:', err));
+      }
 
-    refreshAppUI();
-    showToast(`Asset ${assetId} deleted.`, 'info');
-  }
+      refreshAppUI();
+      showToast(`Asset ${assetId} deleted.`, 'info');
+    },
+    'Delete Asset',
+    'fa-trash'
+  );
 }
 
 
@@ -2547,13 +2549,11 @@ async function openHistoryModal(assetId) {
   renderTimelineLogs(asset.id);
   DOM.historyModal.classList.remove('hidden');
   DOM.historyModal.classList.add('flex');
-  DOM.historyModal.style.display = 'flex';
 }
 
 function closeHistoryModal() {
   DOM.historyModal.classList.add('hidden');
   DOM.historyModal.classList.remove('flex');
-  DOM.historyModal.style.display = 'none';
   // Always reset completion mode when modal closes
   deactivateCompletionMode();
   if (DOM.newLogForm) DOM.newLogForm.classList.add('hidden');
@@ -2840,7 +2840,7 @@ function handleNewLogSubmit(e) {
 
 
 // ==========================================
-// 10. TOAST NOTIFICATIONS & UTILITIES
+// 8. TOAST NOTIFICATIONS & UTILITIES
 // ==========================================
 
 function showToast(message, type = 'info') {
@@ -2881,7 +2881,35 @@ function escapeHTML(str) {
 
 
 // ==========================================
-// 11. EVENT LISTENERS INITIALIZATION
+// 9. CUSTOM CONFIRM MODAL HELPERS
+// ==========================================
+
+let _confirmCallback = null;
+
+function showConfirmModal(message, onConfirm, btnLabel = 'Confirm', btnIcon = 'fa-check') {
+  const modal = document.getElementById('confirmModal');
+  const msgEl = document.getElementById('confirmModalMessage');
+  const btnLabelEl = document.getElementById('confirmModalBtnLabel');
+  const btnIconEl = document.getElementById('confirmModalBtnIcon');
+  if (!modal || !msgEl) return;
+
+  msgEl.textContent = message;
+  if (btnLabelEl) btnLabelEl.textContent = btnLabel;
+  if (btnIconEl) btnIconEl.className = `fa-solid ${btnIcon} text-xs`;
+
+  _confirmCallback = onConfirm;
+  modal.classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+  const modal = document.getElementById('confirmModal');
+  if (modal) modal.classList.add('hidden');
+  _confirmCallback = null;
+}
+
+
+// ==========================================
+// 10. EVENT LISTENERS INITIALIZATION
 // ==========================================
 
 function initEventListeners() {
@@ -2993,12 +3021,17 @@ function initEventListeners() {
   if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
   if (DOM.resetStoreDataBtn) {
     DOM.resetStoreDataBtn.addEventListener('click', () => {
-      if (confirm(`Reset store data for ${AppState.activeStore.code} back to original demo state?`)) {
-        StorageManager.resetStoreData(AppState.activeStore.code);
-        loadUserSession();
-        if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
-        showToast('Store data reset to demo defaults.', 'info');
-      }
+      if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
+      showConfirmModal(
+        `Reset all data for store "${AppState.activeStore.code}" back to the original demo state? All current asset records will be replaced.`,
+        () => {
+          StorageManager.resetStoreData(AppState.activeStore.code);
+          loadUserSession();
+          showToast('Store data reset to demo defaults.', 'info');
+        },
+        'Reset Data',
+        'fa-rotate-left'
+      );
     });
   }
 
@@ -3011,20 +3044,31 @@ function initEventListeners() {
   // Asset Form Submit
   DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
 
+  // Confirm modal Cancel / Confirm buttons
+  const confirmCancelBtn = document.getElementById('confirmModalCancelBtn');
+  const confirmConfirmBtn = document.getElementById('confirmModalConfirmBtn');
+  if (confirmCancelBtn) confirmCancelBtn.addEventListener('click', closeConfirmModal);
+  if (confirmConfirmBtn) {
+    confirmConfirmBtn.addEventListener('click', () => {
+      if (typeof _confirmCallback === 'function') _confirmCallback();
+      closeConfirmModal();
+    });
+  }
+
   // Backdrop overlay click closes modals
   [DOM.adminStoreManagerModal, DOM.storeModal, DOM.assetModal, DOM.historyModal].forEach(modal => {
     modal.addEventListener('click', e => {
       if (e.target === modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        modal.style.display = 'none';
       }
     });
   });
 
-  // ESC key closes any open modal
+  // ESC key closes any open modal or confirm dialog
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      closeConfirmModal();
       closeAdminStoreManagerModal();
       closeCreateStoreModal();
       closeAssetModal();
