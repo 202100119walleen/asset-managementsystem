@@ -2966,6 +2966,45 @@ function escapeHTML(str) {
   );
 }
 
+function compressAndBase64Image(file, callback, maxWidth = 800, quality = 0.75) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxWidth) {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+      callback(compressedBase64);
+    };
+    img.onerror = function() {
+      callback(evt.target.result);
+    };
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 
 // ==========================================
 // 9. CUSTOM CONFIRM MODAL HELPERS
@@ -3199,14 +3238,11 @@ function initEventListeners() {
     const file = e.target.files[0];
     if (file) {
       DOM.assetFileLabel.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const base64Url = evt.target.result;
+      compressAndBase64Image(file, function(base64Url) {
         DOM.assetFormImage.value = base64Url;
         updateAssetFormPreview(base64Url);
         showToast('Local image selected & encoded.', 'success');
-      };
-      reader.readAsDataURL(file);
+      });
     }
   });
 
@@ -3245,18 +3281,15 @@ function initEventListeners() {
     const file = e.target.files[0];
     if (file) {
       DOM.logFileLabel.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const base64Url = evt.target.result;
+      compressAndBase64Image(file, function(base64Url) {
         DOM.logFormImage.value = base64Url;
         updateLogFormPreview(base64Url);
         if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
         if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
         if (DOM.logFormImage) DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
         updateCompletionChecklist();
-        showToast('Service receipt image selected.', 'success');
-      };
-      reader.readAsDataURL(file);
+        showToast('Proof photo uploaded & processed.', 'success');
+      });
     }
   });
 
