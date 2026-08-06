@@ -31,212 +31,37 @@ const DEFAULT_ADMINS = [
   { username: 'admin3', name: 'System Admin 3', password: 'adminpass3', role: 'admin' }
 ];
 
-const DEFAULT_STORES = [
-  { code: 'STORE-01', name: 'Downtown Branch Store', password: 'pass123' },
-  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' },
-  { code: 'HQ-MAIN', name: 'Corporate Headquarters', password: 'admin123' }
-];
+const DEFAULT_STORES = [];
 
-const SEED_ASSETS_STORE_01 = [
-  {
-    id: 'AST-1001',
-    name: 'Daikin Inverter Split Aircon 2.5HP',
-    category: 'HVAC / Aircon',
-    serial: 'AC-88392-DK',
-    location: 'Main Sales Floor',
-    status: 'Good',
-    lastMaintenance: '2026-06-15',
-    purchaseDate: '2023-04-10',
-    value: 1450.00,
-    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-06-15T10:00:00.000Z'
-  },
-  {
-    id: 'AST-1002',
-    name: 'NCR Voyix Touchscreen POS Terminal',
-    category: 'POS & Cashier',
-    serial: 'POS-77401-NC',
-    location: 'Counter 01',
-    status: 'Maintenance Needed',
-    lastMaintenance: '2025-11-20',
-    purchaseDate: '2022-09-01',
-    value: 2100.00,
-    imageUrl: 'https://images.unsplash.com/photo-1556742049-0a670fc8078a?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-07-02T14:30:00.000Z'
-  },
-  {
-    id: 'AST-1003',
-    name: 'Dell Latitude 5540 Manager Laptop',
-    category: 'Laptops & IT',
-    serial: 'DL-99381-LT',
-    location: 'Manager Office',
-    status: 'Good',
-    lastMaintenance: '2026-05-10',
-    purchaseDate: '2024-01-15',
-    value: 1250.00,
-    imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-05-10T09:15:00.000Z'
-  },
-  {
-    id: 'AST-1004',
-    name: 'Commercial Double-Door Display Freezer',
-    category: 'Refrigeration',
-    serial: 'RF-44210-FZ',
-    location: 'Beverage Aisle 3',
-    status: 'Good',
-    lastMaintenance: '2026-07-01',
-    purchaseDate: '2021-08-20',
-    value: 3800.00,
-    imageUrl: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-07-01T11:20:00.000Z'
-  },
-  {
-    id: 'AST-1005',
-    name: 'Ford Transit Store Delivery Van',
-    category: 'Vehicles',
-    serial: 'VIN-99201-VAN',
-    location: 'Back Parking Bay',
-    status: 'Out of Service',
-    lastMaintenance: '2026-04-05',
-    purchaseDate: '2020-03-12',
-    value: 28500.00,
-    imageUrl: 'https://images.unsplash.com/photo-1559297434-fae8a1916a79?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-07-18T16:00:00.000Z'
-  }
-];
-
-const SEED_LOGS_STORE_01 = [
-  {
-    id: 'LOG-5001',
-    assetId: 'AST-1001',
-    date: '2026-06-15',
-    technician: 'CoolTech HVAC Solutions',
-    statusBefore: 'Maintenance Needed',
-    statusAfter: 'Good',
-    cost: 180.00,
-    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80',
-    notes: 'Replaced air filters, cleaned condenser coils, and refilled R-410A refrigerant. Unit cooling efficiently now.'
-  },
-  {
-    id: 'LOG-5002',
-    assetId: 'AST-1002',
-    date: '2026-07-02',
-    technician: 'In-House IT Support',
-    statusBefore: 'Good',
-    statusAfter: 'Maintenance Needed',
-    cost: 45.00,
-    imageUrl: '',
-    notes: 'Thermal receipt printer paper feeder jamming intermittently. Receipt cutter replacement part ordered.'
-  },
-  {
-    id: 'LOG-5003',
-    assetId: 'AST-1005',
-    date: '2026-07-18',
-    technician: 'Metro Auto Service Center',
-    statusBefore: 'Good',
-    statusAfter: 'Out of Service',
-    cost: 850.00,
-    imageUrl: '',
-    notes: 'Transmission fluid leak diagnosed. Vehicle towed to mechanic workshop awaiting gearbox clutch replacement.'
-  }
-];
-
-const SEED_ASSETS_STORE_02 = [
-  {
-    id: 'AST-2001',
-    name: 'La Marzocco Commercial Espresso Machine',
-    category: 'Kitchen Equipment',
-    serial: 'LM-3031-ESP',
-    location: 'Café Corner',
-    status: 'Good',
-    lastMaintenance: '2026-07-12',
-    purchaseDate: '2023-02-14',
-    value: 6200.00,
-    imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-07-12T08:00:00.000Z'
-  },
-  {
-    id: 'AST-2002',
-    name: 'Apple iPad Pro 12.9 POS Register',
-    category: 'POS & Cashier',
-    serial: 'IPD-88210-AP',
-    location: 'Register 2',
-    status: 'Good',
-    lastMaintenance: '2026-05-30',
-    purchaseDate: '2023-11-10',
-    value: 1199.00,
-    imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
-    updatedAt: '2026-05-30T13:00:00.000Z'
-  }
-];
-
-const SEED_LOGS_STORE_02 = [
-  {
-    id: 'LOG-6001',
-    assetId: 'AST-2001',
-    date: '2026-07-12',
-    technician: 'Barista Tech Services',
-    statusBefore: 'Maintenance Needed',
-    statusAfter: 'Good',
-    cost: 240.00,
-    imageUrl: '',
-    notes: 'Descaled group heads, replaced group gaskets, and recalibrated pump pressure to 9 bars.'
-  }
-];
+const SEED_ASSETS_STORE_01 = [];
+const SEED_LOGS_STORE_01 = [];
+const SEED_ASSETS_STORE_02 = [];
+const SEED_LOGS_STORE_02 = [];
 
 // ==========================================
 // 3. STORAGE & SUPABASE SYNC LAYER
 // ==========================================
-const DEFAULT_NOTIFICATIONS = [
-  {
-    id: 'NOTIF-01',
-    recipientRole: 'admin',
-    recipientStoreCode: null,
-    title: 'Service Log Submitted',
-    message: 'STORE-01 submitted a service log for HVAC Unit (AST-1001).',
-    assetId: 'AST-1001',
-    storeCode: 'STORE-01',
-    isRead: false,
-    type: 'log',
-    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString()
-  },
-  {
-    id: 'NOTIF-02',
-    recipientRole: 'store',
-    recipientStoreCode: 'STORE-01',
-    title: 'Admin Comment Reply',
-    message: 'Admin admin1 replied to your comment on POS Terminal 01 (AST-1002).',
-    assetId: 'AST-1002',
-    storeCode: 'STORE-01',
-    isRead: false,
-    type: 'reply',
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString()
-  }
-];
+const DEFAULT_NOTIFICATIONS = [];
 
 class StorageManager {
   static initStorage() {
-    if (!localStorage.getItem('ams_stores')) {
-      localStorage.setItem('ams_stores', JSON.stringify(DEFAULT_STORES));
-    }
-    // Seed Store 01 if missing locally
-    if (!localStorage.getItem('ams_assets_STORE-01')) {
-      localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
-      localStorage.setItem('ams_logs_STORE-01', JSON.stringify(SEED_LOGS_STORE_01));
-    }
-    // Seed Store 02 if missing locally
-    if (!localStorage.getItem('ams_assets_STORE-02')) {
-      localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
-      localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
-    }
-    // Seed HQ if missing locally
-    if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
-      localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
-      localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
-    }
-    // Seed Notifications if missing locally
+    let stores = StorageManager.getStores();
+    // Purge all legacy demo stores from local storage
+    stores = stores.filter(s => !['STORE-01', 'STORE-02', 'HQ-MAIN'].includes(s.code));
+    localStorage.setItem('ams_stores', JSON.stringify(stores));
+
+    ['STORE-01', 'STORE-02', 'HQ-MAIN'].forEach(code => {
+      localStorage.removeItem(`ams_assets_${code}`);
+      localStorage.removeItem(`ams_logs_${code}`);
+    });
+
     if (!localStorage.getItem('ams_notifications')) {
-      localStorage.setItem('ams_notifications', JSON.stringify(DEFAULT_NOTIFICATIONS));
+      localStorage.setItem('ams_notifications', JSON.stringify([]));
+    }
+
+    if (supabaseClient) {
+      supabaseClient.from('stores').delete().in('code', ['STORE-01', 'STORE-02', 'HQ-MAIN']).catch(err => console.log('Purge demo stores note:', err));
+      supabaseClient.from('assets').delete().in('store_code', ['STORE-01', 'STORE-02', 'HQ-MAIN']).catch(err => console.log('Purge demo assets note:', err));
     }
 
     // Async sync with Supabase in background
