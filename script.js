@@ -384,6 +384,14 @@ class StorageManager {
 
   static saveStores(stores) {
     localStorage.setItem('ams_stores', JSON.stringify(stores));
+    if (supabaseClient && Array.isArray(stores) && stores.length > 0) {
+      const storesToUpsert = stores.map(s => ({
+        code: s.code,
+        name: s.name,
+        password: s.password
+      }));
+      supabaseClient.from('stores').upsert(storesToUpsert).catch(err => console.log('Stores upsert sync error:', err));
+    }
   }
 
   static addStore(code, name, password, seedOption = 'empty') {
@@ -407,6 +415,25 @@ class StorageManager {
     if (seedOption === 'seed') {
       localStorage.setItem(`ams_assets_${cleanCode}`, JSON.stringify(SEED_ASSETS_STORE_01));
       localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify(SEED_LOGS_STORE_01));
+      if (supabaseClient) {
+        const mappedAssets = SEED_ASSETS_STORE_01.map(a => ({
+          id: a.id,
+          store_code: cleanCode,
+          name: a.name,
+          category: a.category,
+          serial: a.serial,
+          status: a.status,
+          location: a.location || 'Main Area',
+          last_maintenance: a.lastMaintenance || null,
+          due_date: a.dueDate || null,
+          value: a.value || 0,
+          image_url: a.imageUrl || '',
+          is_completed: Boolean(a.isCompleted),
+          completed_image_url: a.completedImageUrl || '',
+          updated_at: new Date().toISOString()
+        }));
+        supabaseClient.from('assets').upsert(mappedAssets).catch(err => console.log('Seed assets sync note:', err));
+      }
     } else {
       localStorage.setItem(`ams_assets_${cleanCode}`, JSON.stringify([]));
       localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify([]));
@@ -422,15 +449,6 @@ class StorageManager {
       storeCode: cleanCode,
       type: 'assignment'
     });
-
-    // Push to Supabase
-    if (supabaseClient) {
-      supabaseClient.from('stores').insert([{
-        code: newStore.code,
-        name: newStore.name,
-        password: newStore.password
-      }]).catch(err => console.log('Supabase store insert note:', err));
-    }
 
     return { success: true, store: newStore };
   }
@@ -456,14 +474,13 @@ class StorageManager {
       localStorage.setItem(`ams_logs_${cleanNewCode}`, JSON.stringify(logs));
       localStorage.removeItem(`ams_assets_${originalCode}`);
       localStorage.removeItem(`ams_logs_${originalCode}`);
+
+      if (supabaseClient) {
+        supabaseClient.from('stores').delete().eq('code', originalCode).catch(err => console.log('Delete old store code note:', err));
+      }
     }
 
     StorageManager.saveStores(stores);
-
-    if (supabaseClient) {
-      supabaseClient.from('stores').upsert(updatedStore).catch(err => console.log('Supabase store update note:', err));
-    }
-
     return { success: true, store: updatedStore };
   }
 
