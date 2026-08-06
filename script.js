@@ -83,18 +83,43 @@ class StorageManager {
     StorageManager.syncWithSupabase();
   }
 
+  static getDeletedStoreCodes() {
+    try {
+      return JSON.parse(localStorage.getItem('ams_deleted_stores')) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  static markStoreDeleted(code) {
+    const deleted = StorageManager.getDeletedStoreCodes();
+    if (!deleted.includes(code)) {
+      deleted.push(code);
+      localStorage.setItem('ams_deleted_stores', JSON.stringify(deleted));
+    }
+  }
+
   static async syncWithSupabase() {
     if (!supabaseClient) return;
 
     try {
-      // 1. Sync Stores from Supabase (Merge local stores + remote stores so newly created stores are preserved)
-      const localStores = StorageManager.getStores();
+      const deletedCodes = StorageManager.getDeletedStoreCodes();
+
+      // Permanently enforce deletion of deleted stores in Supabase cloud database
+      if (deletedCodes.length > 0) {
+        supabaseClient.from('stores').delete().in('code', deletedCodes).catch(() => {});
+        supabaseClient.from('assets').delete().in('store_code', deletedCodes).catch(() => {});
+      }
+
+      // 1. Sync Stores from Supabase (Filter out any deleted store codes)
+      const localStores = StorageManager.getStores().filter(s => !deletedCodes.includes(s.code));
       const { data: remoteStores, error: storesErr } = await supabaseClient.from('stores').select('*');
 
       let mergedStores = [...localStores];
 
       if (!storesErr && Array.isArray(remoteStores)) {
         remoteStores.forEach(s => {
+          if (deletedCodes.includes(s.code)) return;
           const idx = mergedStores.findIndex(m => m.code.toUpperCase() === s.code.toUpperCase());
           if (idx !== -1) {
             mergedStores[idx] = {
@@ -115,7 +140,7 @@ class StorageManager {
 
       localStorage.setItem('ams_stores', JSON.stringify(mergedStores));
 
-      // Re-push any local stores to Supabase to ensure cloud sync never drops newly registered stores
+      // Re-push active local stores to Supabase
       if (supabaseClient && mergedStores.length > 0) {
         const storesToUpsert = mergedStores.map(s => ({
           code: s.code,
@@ -329,6 +354,8 @@ class StorageManager {
   }
 
   static deleteStore(code) {
+    StorageManager.markStoreDeleted(code);
+
     let stores = StorageManager.getStores();
     stores = stores.filter(s => s.code !== code);
     localStorage.setItem('ams_stores', JSON.stringify(stores));
@@ -336,7 +363,11 @@ class StorageManager {
     localStorage.removeItem(`ams_logs_${code}`);
 
     if (supabaseClient) {
-      supabaseClient.from('stores').delete().eq('code', code).catch(err => console.log('Supabase store delete note:', err));
+      supabaseClient.from('stores').delete().eq('code', code).then(({ error }) => {
+        if (error) console.log('Supabase store delete error:', error.message);
+        else console.log(`Store "${code}" deleted from Supabase cloud database.`);
+      }).catch(err => console.log('Supabase store delete catch:', err));
+
       supabaseClient.from('assets').delete().eq('store_code', code).catch(err => console.log('Supabase assets delete note:', err));
     }
   }
