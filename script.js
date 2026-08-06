@@ -2235,7 +2235,14 @@ function handleAssetFormSubmit(e) {
 function updateCompletionChecklist() {
   if (!DOM.completionModeBanner || DOM.completionModeBanner.classList.contains('hidden')) return;
 
-  const hasDate = Boolean(DOM.logFormDate && DOM.logFormDate.value);
+  const assetId = DOM.logFormAssetId ? DOM.logFormAssetId.value : null;
+  const asset = assetId ? AppState.assets.find(a => a.id === assetId) : null;
+
+  const dateVal = DOM.logFormDate ? DOM.logFormDate.value : '';
+  const hasDate = Boolean(dateVal);
+  const isDateEarlierThanDue = Boolean(hasDate && asset && asset.dueDate && dateVal < asset.dueDate);
+  const isDateValid = hasDate && !isDateEarlierThanDue;
+
   const hasName = Boolean(DOM.logFormTechnician && DOM.logFormTechnician.value.trim().length > 0);
   const hasPhoto = Boolean(DOM.logFormImage && DOM.logFormImage.value.trim().length > 5);
 
@@ -2252,17 +2259,25 @@ function updateCompletionChecklist() {
     }
   }
 
-  setCheck(DOM.checklistDate, DOM.checklistDateIcon, hasDate, 'Date Completed', 'Date Completed');
+  const dateFailMsg = !hasDate 
+    ? 'Date Completed' 
+    : (isDateEarlierThanDue ? `Cannot be before scheduled date (${asset.dueDate})` : 'Date Completed');
+
+  setCheck(DOM.checklistDate, DOM.checklistDateIcon, isDateValid, 'Date Completed', dateFailMsg);
   setCheck(DOM.checklistName, DOM.checklistNameIcon, hasName, 'Responsible', 'Responsible');
   setCheck(DOM.checklistPhoto, DOM.checklistPhotoIcon, hasPhoto, 'Proof Photo', 'Proof Photo');
 }
 
 function activateCompletionMode() {
+  const assetId = DOM.logFormAssetId ? DOM.logFormAssetId.value : null;
+  const asset = assetId ? AppState.assets.find(a => a.id === assetId) : null;
+
   // Switch form UI into "Task Completion" mode
   if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '1';
   if (DOM.completionModeBanner) DOM.completionModeBanner.classList.remove('hidden');
   if (DOM.logFormDateLabel) {
-    DOM.logFormDateLabel.innerHTML = 'Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+    const minNotice = asset && asset.dueDate ? ` <span class="text-amber-400 font-normal">(min: ${asset.dueDate})</span>` : '';
+    DOM.logFormDateLabel.innerHTML = `Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>${minNotice}`;
   }
   if (DOM.logFormTechnicianLabel) {
     DOM.logFormTechnicianLabel.innerHTML = 'Responsible <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
@@ -2279,14 +2294,19 @@ function activateCompletionMode() {
   if (DOM.logFormSubmitBtn) {
     DOM.logFormSubmitBtn.className = 'px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5';
   }
-  // Highlight the date & image fields
+  // Highlight the date & image fields & enforce HTML min date attribute
   if (DOM.logFormDate) {
     DOM.logFormDate.classList.add('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30');
+    if (asset && asset.dueDate) {
+      DOM.logFormDate.min = asset.dueDate;
+    }
   }
   if (DOM.logFileUploadBtn) {
     DOM.logFileUploadBtn.classList.add('border-emerald-500/50', 'text-emerald-300');
     DOM.logFileUploadBtn.classList.remove('border-zinc-700');
   }
+
+  updateCompletionChecklist();
 }
 
 function deactivateCompletionMode() {
@@ -2314,6 +2334,7 @@ function deactivateCompletionMode() {
   }
   if (DOM.logFormDate) {
     DOM.logFormDate.classList.remove('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30', 'border-rose-500', 'ring-rose-500/40');
+    DOM.logFormDate.removeAttribute('min');
   }
   if (DOM.logFormImage) {
     DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
@@ -2354,9 +2375,14 @@ function markTaskCompleted(assetId) {
     if (DOM.logFormNotes && (!DOM.logFormNotes.value || DOM.logFormNotes.value.length < 5)) {
       DOM.logFormNotes.value = 'Task completed and verified. Photo proof of completed work attached below.';
     }
-    // Set today as default Date Completed
-    if (DOM.logFormDate && !DOM.logFormDate.value) {
-      DOM.logFormDate.value = new Date().toISOString().split('T')[0];
+    // Set default completion date to today or due date (whichever is later)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const initialDate = asset.dueDate && asset.dueDate > todayStr ? asset.dueDate : todayStr;
+    if (DOM.logFormDate) {
+      DOM.logFormDate.value = initialDate;
+      if (asset.dueDate) {
+        DOM.logFormDate.min = asset.dueDate;
+      }
     }
     activateCompletionMode();
   }, 300);
@@ -2686,9 +2712,16 @@ function handleNewLogSubmit(e) {
 
   // ─── UPFRONT VALIDATION (before any data changes) ────────────────────────
 
-  // 1. Date Completed is required in completion mode
+  // 1a. Date Completed is required in completion mode
   if (isCompletionMode && !serviceDate) {
     showToast('⚠️ Cannot complete task: Please set the Date Completed.', 'error');
+    shakeField(DOM.logFormDate);
+    return;
+  }
+
+  // 1b. Date Completed cannot be earlier than scheduled due date
+  if (asset.dueDate && serviceDate && serviceDate < asset.dueDate) {
+    showToast(`⚠️ Invalid Completion Date: Cannot set date to ${serviceDate}. Completion date cannot be earlier than the scheduled due date (${asset.dueDate}).`, 'error');
     shakeField(DOM.logFormDate);
     return;
   }
