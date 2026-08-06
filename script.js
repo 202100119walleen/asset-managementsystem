@@ -87,16 +87,42 @@ class StorageManager {
     if (!supabaseClient) return;
 
     try {
-      // 1. Sync Stores directly from Supabase (Supabase is single source of truth)
+      // 1. Sync Stores from Supabase (Merge local stores + remote stores so newly created stores are preserved)
+      const localStores = StorageManager.getStores();
       const { data: remoteStores, error: storesErr } = await supabaseClient.from('stores').select('*');
 
+      let mergedStores = [...localStores];
+
       if (!storesErr && Array.isArray(remoteStores)) {
-        const mappedStores = remoteStores.map(s => ({
+        remoteStores.forEach(s => {
+          const idx = mergedStores.findIndex(m => m.code.toUpperCase() === s.code.toUpperCase());
+          if (idx !== -1) {
+            mergedStores[idx] = {
+              ...mergedStores[idx],
+              code: s.code,
+              name: s.name,
+              password: s.password
+            };
+          } else {
+            mergedStores.push({
+              code: s.code,
+              name: s.name,
+              password: s.password
+            });
+          }
+        });
+      }
+
+      localStorage.setItem('ams_stores', JSON.stringify(mergedStores));
+
+      // Re-push any local stores to Supabase to ensure cloud sync never drops newly registered stores
+      if (supabaseClient && mergedStores.length > 0) {
+        const storesToUpsert = mergedStores.map(s => ({
           code: s.code,
           name: s.name,
           password: s.password
         }));
-        localStorage.setItem('ams_stores', JSON.stringify(mappedStores));
+        supabaseClient.from('stores').upsert(storesToUpsert).catch(err => console.log('Re-upsert stores note:', err));
       }
 
       if (typeof renderStoreAccountsList === 'function') renderStoreAccountsList();
@@ -206,7 +232,9 @@ class StorageManager {
         name: s.name,
         password: s.password
       }));
-      supabaseClient.from('stores').upsert(storesToUpsert).catch(err => console.log('Stores upsert sync error:', err));
+      supabaseClient.from('stores').upsert(storesToUpsert).then(({ error }) => {
+        if (error) console.log('Supabase store save status:', error.message);
+      }).catch(err => console.log('Stores upsert sync error:', err));
     }
   }
 
