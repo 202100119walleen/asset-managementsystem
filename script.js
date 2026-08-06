@@ -1232,20 +1232,30 @@ function confirmDeleteStore(storeCode) {
     return;
   }
 
-  const stores = StorageManager.getStores();
-  if (stores.length <= 1) {
-    showToast('Cannot delete the last remaining store account.', 'error');
-    return;
-  }
-
   showConfirmModal(
-    `Delete store "${storeCode}"? This will permanently remove all its assets and data and cannot be undone.`,
+    `Delete store "${storeCode}"? This will permanently remove all its assets and data from the local system and cloud database.`,
     () => {
       StorageManager.deleteStore(storeCode);
+      const remainingStores = StorageManager.getStores();
+      if (remainingStores.length > 0) {
+        if (!AppState.activeStore || AppState.activeStore.code === storeCode) {
+          AppState.activeStore = remainingStores[0];
+          StorageManager.setActiveStoreCode(remainingStores[0].code);
+          AppState.assets = StorageManager.getAssets(remainingStores[0].code);
+          AppState.logs = StorageManager.getLogs(remainingStores[0].code);
+        }
+      } else {
+        AppState.activeStore = null;
+        StorageManager.setActiveStoreCode(null);
+        AppState.assets = [];
+        AppState.logs = [];
+      }
+
       renderStoreAccountsList();
       renderAdminStoreTable();
       renderHeaderStoreSelector();
-      showToast(`Store "${storeCode}" deleted.`, 'info');
+      refreshAppUI();
+      showToast(`Store "${storeCode}" deleted successfully.`, 'info');
     },
     'Delete Store',
     'fa-trash'
