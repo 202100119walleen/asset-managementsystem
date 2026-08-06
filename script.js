@@ -689,7 +689,7 @@ function switchLoginTab(mode) {
     DOM.loginStoreCode.placeholder = 'e.g. STORE-01';
     DOM.loginSubmitBtnText.textContent = 'Log In to Store Dashboard';
 
-    if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.add('hidden');
+    if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.remove('hidden');
     if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   } else {
     DOM.tabAdminLogin.className = 'flex-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-sm transition-all flex items-center justify-center gap-1.5';
@@ -699,7 +699,7 @@ function switchLoginTab(mode) {
     DOM.loginSubmitBtnText.textContent = 'Access Admin Console';
 
     if (DOM.adminAccountsSection) DOM.adminAccountsSection.classList.remove('hidden');
-    if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.add('hidden');
+    if (DOM.storeAccountsSection) DOM.storeAccountsSection.classList.remove('hidden');
   }
 }
 
