@@ -295,7 +295,7 @@
             </button>
 
             <!-- Notification Dropdown Panel -->
-            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-[min(24rem,calc(100vw-1rem))] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
               <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-bell text-amber-400 text-xs"></i>
@@ -476,16 +476,16 @@
 
         <!-- TABLE VIEW -->
         <div id="tableViewContainer" class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto -webkit-overflow-scrolling-touch">
             <table class="w-full text-left text-sm text-zinc-300">
               <thead class="bg-zinc-950 text-zinc-400 uppercase text-[11px] tracking-wider border-b border-zinc-800">
                 <tr>
                   <th class="py-3.5 px-4 font-semibold">Asset Info</th>
-                  <th class="py-3.5 px-4 font-semibold">Category</th>
-                  <th class="py-3.5 px-4 font-semibold">Serial / ID</th>
-                  <th class="py-3.5 px-4 font-semibold">Location</th>
+                  <th class="py-3.5 px-4 font-semibold hidden md:table-cell">Category</th>
+                  <th class="py-3.5 px-4 font-semibold hidden sm:table-cell">Serial / ID</th>
+                  <th class="py-3.5 px-4 font-semibold hidden sm:table-cell">Location</th>
                   <th class="py-3.5 px-4 font-semibold">Status</th>
-                  <th class="py-3.5 px-4 font-semibold">Due Date</th>
+                  <th class="py-3.5 px-4 font-semibold hidden md:table-cell">Due Date</th>
                   <th class="py-3.5 px-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -497,7 +497,7 @@
         </div>
 
         <!-- CARD GRID VIEW -->
-        <div id="cardViewContainer" class="hidden grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div id="cardViewContainer" class="hidden grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <!-- Rendered dynamically by script.js -->
         </div>
 
@@ -568,8 +568,8 @@
             <thead class="bg-zinc-900 text-zinc-400 uppercase text-[10px] tracking-wider border-b border-zinc-800">
               <tr>
                 <th class="py-3 px-4 font-semibold">Store Code</th>
-                <th class="py-3 px-4 font-semibold">Store Name</th>
-                <th class="py-3 px-4 font-semibold">Assigned Password</th>
+                <th class="py-3 px-4 font-semibold hidden sm:table-cell">Store Name</th>
+                <th class="py-3 px-4 font-semibold hidden md:table-cell">Assigned Password</th>
                 <th class="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -589,7 +589,7 @@
   <!-- 4. MODAL: CREATE / EDIT STORE CREDENTIALS  -->
   <!-- ========================================== -->
   <div id="storeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-8">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
       
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
@@ -605,7 +605,7 @@
       </div>
 
       <!-- Modal Body Form -->
-      <form id="storeForm" class="p-6 space-y-4">
+      <form id="storeForm" class="p-6 space-y-4 overflow-y-auto flex-1">
         <input type="hidden" id="editStoreOriginalCode">
 
         <div>
@@ -682,7 +682,7 @@
   <!-- 5. MODAL: ADD / EDIT ASSET                 -->
   <!-- ========================================== -->
   <div id="assetModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-8">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
       
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
@@ -698,7 +698,7 @@
       </div>
 
       <!-- Modal Body Form -->
-      <form id="assetForm" class="p-6 space-y-4">
+      <form id="assetForm" class="p-6 space-y-4 overflow-y-auto flex-1">
         <input type="hidden" id="assetFormId">
 
         <div>
@@ -913,7 +913,7 @@
           </div>
 
           <!-- Permission Warning Notice for Store Users viewing other stores -->
-          <div id="logPermissionNotice" class="hidden mt-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs rounded-xl flex-row items-center gap-2">
+          <div id="logPermissionNotice" class="hidden mt-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs rounded-xl flex items-start gap-2">
             <i class="fa-solid fa-shield-halved text-sm text-amber-400"></i>
             <span>Read-Only View: Comments can only be added by <strong>Admin accounts</strong> or the <strong>assigned Store account</strong> for this store.</span>
           </div>

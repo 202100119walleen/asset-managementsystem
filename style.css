@@ -118,3 +118,77 @@
 .timeline-dot.oos {
   border-color: #f43f5e;
 }
+
+/* ─── Mobile & Touch Responsive Improvements ──────────────────────── */
+
+/* Momentum / inertia scrolling on iOS for all scroll areas */
+.overflow-x-auto,
+.overflow-y-auto,
+[class*="overflow-y-auto"],
+[class*="overflow-x-auto"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum tap target size — accessibility guideline */
+button:not(.status-tab-btn),
+[role="button"] {
+  min-height: 34px;
+}
+
+/* Toast notifications: full width & bottom-safe on mobile */
+@media (max-width: 639px) {
+  #toastContainer {
+    bottom: 1.25rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  #toastContainer > div {
+    width: 100%;
+    min-width: unset;
+  }
+
+  /* Tighten modal padding on small screens */
+  #assetModal .p-6,
+  #storeModal .p-6,
+  #historyModal .p-6 {
+    padding: 1rem;
+  }
+
+  /* Prevent status badge from overflowing table cells */
+  #assetTableBody .inline-flex {
+    max-width: 120px;
+  }
+
+  /* Sidebar safe area - account for iOS notch */
+  #sidebarNav {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Login card compact padding on very small screens */
+  #loginSection > div {
+    padding: 1.25rem;
+  }
+
+  /* Main content horizontal padding */
+  main.p-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Tablet-specific tweaks (640px – 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  #statsSection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Make the filter status tabs scrollable on mobile without showing scrollbar */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1014,8 +1014,8 @@ function renderAdminStoreTable() {
   DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => `
     <tr class="hover:bg-zinc-900/80 transition-colors border-b border-zinc-800">
       <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
-      <td class="py-3 px-4 text-white font-medium">${escapeHTML(s.name)}</td>
-      <td class="py-3 px-4 font-mono text-zinc-300">
+      <td class="py-3 px-4 text-white font-medium hidden sm:table-cell">${escapeHTML(s.name)}</td>
+      <td class="py-3 px-4 font-mono text-zinc-300 hidden md:table-cell">
         <div class="inline-flex items-center gap-2 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
           <span id="storePwdMask_${idx}">••••••••</span>
           <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
@@ -1025,12 +1025,12 @@ function renderAdminStoreTable() {
         </div>
       </td>
       <td class="py-3 px-4 text-right">
-        <div class="flex items-center justify-end gap-2">
+        <div class="flex items-center justify-end gap-2 flex-wrap">
           <button onclick="openEditStoreModal('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg text-xs flex items-center gap-1">
-            <i class="fa-solid fa-key text-[10px]"></i> Edit Credentials
+            <i class="fa-solid fa-key text-[10px]"></i> <span class="hidden sm:inline">Edit</span>
           </button>
           <button onclick="confirmDeleteStore('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs flex items-center gap-1">
-            <i class="fa-solid fa-trash text-[10px]"></i> Delete
+            <i class="fa-solid fa-trash text-[10px]"></i> <span class="hidden sm:inline">Delete</span>
           </button>
         </div>
       </td>
@@ -1666,6 +1666,17 @@ document.addEventListener('DOMContentLoaded', () => {
   renderStoreAccountsList();
   loadUserSession();
   initSupabaseRealtime();
+
+  // Auto-switch to card view on mobile devices for better UX
+  if (window.innerWidth < 768) {
+    AppState.currentView = 'card';
+    if (DOM.viewCardViewBtn && DOM.viewTableViewBtn) {
+      DOM.viewCardViewBtn.classList.add('bg-zinc-800', 'text-white');
+      DOM.viewCardViewBtn.classList.remove('text-zinc-400');
+      DOM.viewTableViewBtn.classList.remove('bg-zinc-800', 'text-white');
+      DOM.viewTableViewBtn.classList.add('text-zinc-400');
+    }
+  }
 });
 
 function getTaskDueStatus(asset) {
@@ -1950,28 +1961,28 @@ function renderTableView(assets) {
           <div class="flex items-center gap-3">
             ${thumbnail}
             <div>
-              <p class="font-bold text-white leading-snug">${escapeHTML(asset.name)}</p>
+              <p class="font-bold text-white leading-snug text-sm">${escapeHTML(asset.name)}</p>
               <p class="text-xs text-zinc-400 font-mono">${escapeHTML(asset.id)}</p>
             </div>
           </div>
         </td>
-        <td class="py-3.5 px-4 text-xs font-medium text-zinc-300">
+        <td class="py-3.5 px-4 text-xs font-medium text-zinc-300 hidden md:table-cell">
           ${escapeHTML(asset.category)}
         </td>
-        <td class="py-3.5 px-4 text-xs font-mono text-zinc-400">
+        <td class="py-3.5 px-4 text-xs font-mono text-zinc-400 hidden sm:table-cell">
           ${escapeHTML(asset.serial)}
         </td>
-        <td class="py-3.5 px-4 text-xs text-zinc-300">
+        <td class="py-3.5 px-4 text-xs text-zinc-300 hidden sm:table-cell">
           <i class="fa-solid fa-location-dot text-[10px] text-zinc-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
         </td>
         <td class="py-3.5 px-4">
           ${statusBadge}
         </td>
-        <td class="py-3.5 px-4 text-xs font-mono">
+        <td class="py-3.5 px-4 text-xs font-mono hidden md:table-cell">
           ${dueDateDisplay}
         </td>
         <td class="py-3.5 px-4 text-right">
-          <div class="flex items-center justify-end gap-1.5">
+          <div class="flex items-center justify-end gap-1.5 flex-wrap">
             ${quickCompleteBtn}
             <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1 font-medium text-xs" title="View History & Service Logs">
               <i class="fa-solid fa-comments text-xs"></i> Logs
