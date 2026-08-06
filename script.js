@@ -1822,8 +1822,9 @@ function renderDashboardStats() {
   if (DOM.statTotalCount) DOM.statTotalCount.textContent = totalCount;
   if (DOM.statTotalValue) DOM.statTotalValue.textContent = `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Total`;
 
-  if (DOM.statGoodCount) DOM.statGoodCount.textContent = completedAssets.length;
-  const goodPct = totalCount > 0 ? Math.round((completedAssets.length / totalCount) * 100) : 0;
+  const goodConditionAssets = assets.filter(a => a.status === 'Good');
+  if (DOM.statGoodCount) DOM.statGoodCount.textContent = goodConditionAssets.length;
+  const goodPct = totalCount > 0 ? Math.round((goodConditionAssets.length / totalCount) * 100) : 0;
   if (DOM.statGoodPct) DOM.statGoodPct.textContent = `${goodPct}% operational`;
   if (DOM.statGoodBar) DOM.statGoodBar.style.width = `${goodPct}%`;
 
@@ -2152,6 +2153,9 @@ function handleAssetFormSubmit(e) {
     }
   }
 
+  // When editing, find the existing asset record to preserve completion fields
+  const existingAsset = isEditing ? AppState.assets.find(a => a.id === id) : null;
+
   const assetData = {
     id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     name: DOM.assetFormName.value.trim(),
@@ -2163,6 +2167,9 @@ function handleAssetFormSubmit(e) {
     dueDate: assignedDueDate,
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
+    // Preserve completion state so editing a completed asset doesn't wipe the flag
+    isCompleted: existingAsset ? (existingAsset.isCompleted || false) : false,
+    completedImageUrl: existingAsset ? (existingAsset.completedImageUrl || '') : '',
     updatedAt: new Date().toISOString()
   };
 
