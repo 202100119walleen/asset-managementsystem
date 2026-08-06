@@ -140,26 +140,30 @@ class StorageManager {
 
       localStorage.setItem('ams_stores', JSON.stringify(mergedStores));
 
-      // Re-push active local stores to Supabase
-      if (supabaseClient && mergedStores.length > 0) {
-        const storesToUpsert = mergedStores.map(s => ({
-          code: s.code,
-          name: s.name,
-          password: s.password
-        }));
-        supabaseClient.from('stores').upsert(storesToUpsert).catch(err => console.log('Re-upsert stores note:', err));
+      // Restore active store session from saved active code
+      let savedActiveCode = StorageManager.getActiveStoreCode();
+      if (!savedActiveCode && mergedStores.length > 0) {
+        savedActiveCode = mergedStores[0].code;
+        StorageManager.setActiveStoreCode(savedActiveCode);
+      }
+
+      if (savedActiveCode && mergedStores.length > 0) {
+        const activeObj = mergedStores.find(s => s.code.toUpperCase() === savedActiveCode.toUpperCase()) || mergedStores[0];
+        AppState.activeStore = activeObj;
+        StorageManager.setActiveStoreCode(activeObj.code);
+        if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = activeObj.name;
       }
 
       if (typeof renderStoreAccountsList === 'function') renderStoreAccountsList();
       if (typeof renderAdminStoreTable === 'function') renderAdminStoreTable();
       if (typeof renderHeaderStoreSelector === 'function') renderHeaderStoreSelector();
 
-      // 2. Sync Assets from Supabase for Active Store
-      const activeCode = StorageManager.getActiveStoreCode();
-      if (activeCode) {
-        const { data: remoteAssets, error: assetsErr } = await supabaseClient.from('assets').select('*').eq('store_code', activeCode);
-        if (!assetsErr && remoteAssets && remoteAssets.length > 0) {
-          const mappedAssets = remoteAssets.map(a => ({
+      // 2. Sync Assets from Supabase for Active Store (Merge remote & local assets)
+      const currentActiveCode = AppState.activeStore ? AppState.activeStore.code : StorageManager.getActiveStoreCode();
+      if (currentActiveCode) {
+        const { data: remoteAssets, error: assetsErr } = await supabaseClient.from('assets').select('*').ilike('store_code', currentActiveCode.trim());
+        if (!assetsErr && Array.isArray(remoteAssets)) {
+          const mappedRemote = remoteAssets.map(a => ({
             id: a.id,
             name: a.name,
             category: a.category,
@@ -174,9 +178,19 @@ class StorageManager {
             completedImageUrl: a.completed_image_url || '',
             updatedAt: a.updated_at
           }));
-          StorageManager.saveAssets(activeCode, mappedAssets, false);
-          if (AppState.activeStore && AppState.activeStore.code === activeCode) {
-            AppState.assets = mappedAssets;
+
+          const localAssets = StorageManager.getAssets(currentActiveCode);
+          const mergedAssets = [...mappedRemote];
+
+          localAssets.forEach(local => {
+            if (!mergedAssets.some(m => m.id === local.id)) {
+              mergedAssets.push(local);
+            }
+          });
+
+          StorageManager.saveAssets(currentActiveCode, mergedAssets, true);
+          if (AppState.activeStore && AppState.activeStore.code === currentActiveCode) {
+            AppState.assets = mergedAssets;
             if (typeof refreshAppUI === 'function') refreshAppUI();
           }
         }
@@ -881,10 +895,18 @@ function loadUserSession() {
     if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: System Administrator`;
     if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Account: ${savedSession.username}`;
 
-    let activeCode = StorageManager.getActiveStoreCode() || (stores[0] ? stores[0].code : 'STORE-01');
-    let storeObj = stores.find(s => s.code === activeCode) || stores[0] || { code: 'STORE-01', name: 'Downtown Branch Store' };
-    AppState.activeStore = storeObj;
-    StorageManager.setActiveStoreCode(storeObj.code);
+    let activeCode = StorageManager.getActiveStoreCode();
+    let storeObj = null;
+    if (activeCode && stores.length > 0) {
+      storeObj = stores.find(s => s.code.toUpperCase() === activeCode.toUpperCase());
+    }
+    if (!storeObj && stores.length > 0) {
+      storeObj = stores[0];
+    }
+    if (storeObj) {
+      AppState.activeStore = storeObj;
+      StorageManager.setActiveStoreCode(storeObj.code);
+    }
   } else {
     // Store Role Configuration
     DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono';
@@ -897,7 +919,7 @@ function loadUserSession() {
     if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = `Role: Store User`;
     if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = `Store Code: ${savedSession.storeCode}`;
 
-    let storeObj = stores.find(s => s.code === savedSession.storeCode) || { code: savedSession.storeCode, name: savedSession.name };
+    let storeObj = stores.find(s => s.code.toUpperCase() === savedSession.storeCode.toUpperCase()) || { code: savedSession.storeCode, name: savedSession.name };
     AppState.activeStore = storeObj;
     StorageManager.setActiveStoreCode(storeObj.code);
   }
