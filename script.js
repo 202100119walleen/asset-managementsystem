@@ -38,10 +38,37 @@ const SEED_LOGS_STORE_01 = [];
 const SEED_ASSETS_STORE_02 = [];
 const SEED_LOGS_STORE_02 = [];
 
+// Clean environment: No pre-loaded demo stores or assets
+
 // ==========================================
 // 3. STORAGE & SUPABASE SYNC LAYER
 // ==========================================
-const DEFAULT_NOTIFICATIONS = [];
+const DEFAULT_NOTIFICATIONS = [
+  {
+    id: 'NOTIF-01',
+    recipientRole: 'admin',
+    recipientStoreCode: null,
+    title: 'Service Log Submitted',
+    message: 'STORE-01 submitted a service log for HVAC Unit (AST-1001).',
+    assetId: 'AST-1001',
+    storeCode: 'STORE-01',
+    isRead: false,
+    type: 'log',
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString()
+  },
+  {
+    id: 'NOTIF-02',
+    recipientRole: 'store',
+    recipientStoreCode: 'STORE-01',
+    title: 'Admin Comment Reply',
+    message: 'Admin admin1 replied to your comment on POS Terminal 01 (AST-1002).',
+    assetId: 'AST-1002',
+    storeCode: 'STORE-01',
+    isRead: false,
+    type: 'reply',
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString()
+  }
+];
 
 class StorageManager {
   static initStorage() {
@@ -727,11 +754,10 @@ function renderStoreAccountsList() {
     btn.addEventListener('click', () => {
       switchLoginTab('store');
       const code = btn.getAttribute('data-code');
-      const storeObj = stores.find(s => s.code === code);
-      const pass = storeObj ? storeObj.password : 'pass123';
       DOM.loginStoreCode.value = code;
-      DOM.loginPassword.value = pass;
-      handleLogin(code, pass);
+      DOM.loginPassword.value = '';
+      DOM.loginPassword.focus();
+      showToast(`Selected store "${code}". Please type password to log in.`, 'info');
     });
   });
 }
@@ -1276,16 +1302,15 @@ function initEventListeners() {
     });
   }
 
-  // Admin Quick Selection Buttons (Pre-fills credentials & logs in automatically)
+  // Admin Quick Selection Buttons (Sets username, clears password, REQUIRES USER TO TYPE PASSWORD)
   document.querySelectorAll('.admin-demo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchLoginTab('admin');
       const user = btn.getAttribute('data-user');
-      const matchedAdmin = DEFAULT_ADMINS.find(a => a.username === user);
-      const pass = matchedAdmin ? matchedAdmin.password : 'adminpass1';
       DOM.loginStoreCode.value = user;
-      DOM.loginPassword.value = pass;
-      handleLogin(user, pass);
+      DOM.loginPassword.value = '';
+      DOM.loginPassword.focus();
+      showToast(`Selected Admin account "${user}". Please type password to log in.`, 'info');
     });
   });
 

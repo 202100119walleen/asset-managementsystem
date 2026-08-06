@@ -12,32 +12,38 @@
   <!-- Google Fonts Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="bg-zinc-950 text-zinc-100 font-sans min-h-screen antialiased flex flex-col selection:bg-zinc-700 selection:text-white">
+<body
+  class="bg-zinc-950 text-zinc-100 font-sans min-h-screen antialiased flex flex-col selection:bg-zinc-700 selection:text-white">
 
   <!-- ========================================== -->
   <!-- 1. AUTHENTICATION / LOGIN VIEW             -->
   <!-- ========================================== -->
-  <div id="loginSection" class="min-h-screen flex items-center justify-center p-4 relative bg-zinc-950 bg-radial-gradient">
-    
-    <div class="w-full max-w-[400px] bg-zinc-900/95 border border-zinc-800 backdrop-blur-2xl rounded-2xl p-7 shadow-2xl relative z-10 space-y-6">
-      
+  <div id="loginSection"
+    class="min-h-screen flex items-center justify-center p-4 relative bg-zinc-950 bg-radial-gradient">
+
+    <div
+      class="w-full max-w-[400px] bg-zinc-900/95 border border-zinc-800 backdrop-blur-2xl rounded-2xl p-7 shadow-2xl relative z-10 space-y-6">
+
       <!-- Minimalist Header & Branding -->
       <div class="text-center space-y-2">
-        <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-100 shadow-sm">
+        <div
+          class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-100 shadow-sm">
           <i class="fa-solid fa-boxes-stacked text-lg"></i>
         </div>
         <h1 class="text-xl font-bold text-white tracking-tight">Asset Core</h1>
         <p class="text-xs text-zinc-400 font-normal">Sign in to access your asset dashboard</p>
-        
+
         <!-- Supabase Live Connection Indicator -->
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+        <div
+          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>Supabase Cloud Synced</span>
         </div>
@@ -45,10 +51,12 @@
 
       <!-- Minimalist Segmented Login Mode Switcher -->
       <div class="flex items-center p-1 bg-zinc-950 rounded-xl border border-zinc-800 text-xs font-medium">
-        <button id="tabStoreLogin" type="button" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white shadow-sm transition-all flex items-center justify-center gap-1.5">
+        <button id="tabStoreLogin" type="button"
+          class="flex-1 py-2 rounded-lg bg-zinc-800 text-white shadow-sm transition-all flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-store text-zinc-400"></i> Store Login
         </button>
-        <button id="tabAdminLogin" type="button" class="flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1.5">
+        <button id="tabAdminLogin" type="button"
+          class="flex-1 py-2 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-user-shield text-amber-400"></i> Admin Portal
         </button>
       </div>
@@ -56,16 +64,12 @@
       <!-- Minimalist Login Form -->
       <form id="loginForm" class="space-y-4">
         <div>
-          <label id="loginLabelCode" class="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5" for="loginStoreCode">
+          <label id="loginLabelCode" class="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5"
+            for="loginStoreCode">
             <i class="fa-solid fa-store text-zinc-400 mr-1"></i> Store Code
           </label>
-          <input 
-            type="text" 
-            id="loginStoreCode" 
-            placeholder="e.g. STORE-01" 
-            required
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/50 transition-all font-mono uppercase text-xs"
-          >
+          <input type="text" id="loginStoreCode" placeholder="e.g. STORE-01" required
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/50 transition-all font-mono uppercase text-xs">
         </div>
 
         <div>
@@ -73,28 +77,23 @@
             <i class="fa-solid fa-lock text-zinc-400 mr-1"></i> Password
           </label>
           <div class="relative">
-            <input 
-              type="password" 
-              id="loginPassword" 
-              placeholder="••••••••" 
-              required
-              class="w-full pl-3.5 pr-9 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/50 transition-all text-xs"
-            >
-            <button type="button" id="toggleLoginPasswordBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-1">
+            <input type="password" id="loginPassword" placeholder="••••••••" required
+              class="w-full pl-3.5 pr-9 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/50 transition-all text-xs">
+            <button type="button" id="toggleLoginPasswordBtn"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-1">
               <i id="loginPwdEyeIcon" class="fa-solid fa-eye text-xs"></i>
             </button>
           </div>
         </div>
 
-        <div id="loginError" class="hidden p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl items-center gap-2">
+        <div id="loginError"
+          class="hidden p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl items-center gap-2">
           <i class="fa-solid fa-circle-exclamation text-xs"></i>
           <span id="loginErrorText">Invalid credentials.</span>
         </div>
 
-        <button 
-          type="submit" 
-          class="w-full py-2.5 px-4 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-xl shadow-sm transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 text-xs"
-        >
+        <button type="submit"
+          class="w-full py-2.5 px-4 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-xl shadow-sm transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 text-xs">
           <span id="loginSubmitBtnText">Log In to Store Dashboard</span>
           <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </button>
@@ -141,19 +140,21 @@
   <!-- 2. MAIN APPLICATION WORKSPACE WITH SIDEBAR -->
   <!-- ========================================== -->
   <div id="appSection" class="hidden app-layout min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased relative">
-    
+
     <!-- MOBILE OVERLAY BACKDROP -->
     <div id="sidebarBackdrop" class="hidden fixed inset-0 z-40 bg-zinc-950/80 backdrop-blur-sm md:hidden"></div>
 
     <!-- MINIMALIST ENTERPRISE SIDEBAR NAVIGATION -->
-    <aside id="sidebarNav" class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between h-screen top-0 left-0 z-50 shrink-0 transition-transform duration-300 ease-in-out md:translate-x-0 -translate-x-full fixed md:sticky md:relative">
-      
+    <aside id="sidebarNav"
+      class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between h-screen top-0 left-0 z-50 shrink-0 transition-transform duration-300 ease-in-out md:translate-x-0 -translate-x-full fixed md:sticky md:relative">
+
       <!-- TOP SIDEBAR CONTENT -->
       <div class="p-4 space-y-6 overflow-y-auto">
-        
+
         <!-- Brand Header -->
         <div class="flex items-center gap-3 px-2 py-1">
-          <div class="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center shadow-sm shrink-0 font-bold">
+          <div
+            class="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center shadow-sm shrink-0 font-bold">
             <i class="fa-solid fa-boxes-stacked text-base"></i>
           </div>
           <div class="overflow-hidden">
@@ -168,7 +169,8 @@
             <span>Store Console</span>
             <i class="fa-solid fa-store text-zinc-400"></i>
           </div>
-          <select id="activeStoreSelect" class="w-full bg-zinc-900 text-white font-mono font-bold text-xs py-2 px-2.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-zinc-600 cursor-pointer">
+          <select id="activeStoreSelect"
+            class="w-full bg-zinc-900 text-white font-mono font-bold text-xs py-2 px-2.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-zinc-600 cursor-pointer">
             <!-- Rendered dynamically -->
           </select>
           <div class="flex items-center gap-1.5 pt-0.5">
@@ -180,13 +182,15 @@
         <!-- MAIN NAVIGATION MENU -->
         <nav class="space-y-1">
           <div class="px-3 pb-1 text-[10px] uppercase tracking-wider font-bold text-zinc-400">Directory</div>
-          
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-white border border-zinc-700/80">
+
+          <a href="#"
+            class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-white border border-zinc-700/80">
             <i class="fa-solid fa-boxes-stacked w-4 text-center text-zinc-300"></i>
             <span>Asset Directory</span>
           </a>
 
-          <a href="#statsSection" class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors">
+          <a href="#statsSection"
+            class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors">
             <i class="fa-solid fa-chart-pie w-4 text-center text-zinc-500"></i>
             <span>Analytics &amp; Metrics</span>
           </a>
@@ -194,17 +198,20 @@
 
         <!-- ADMIN MANAGEMENT NAVIGATION BLOCK (RBAC Controlled) -->
         <div id="sidebarAdminBlock" class="space-y-1 pt-2 border-t border-zinc-800">
-          <div class="px-3 pb-1 text-[10px] uppercase tracking-wider font-bold text-amber-400 flex items-center justify-between">
+          <div
+            class="px-3 pb-1 text-[10px] uppercase tracking-wider font-bold text-amber-400 flex items-center justify-between">
             <span>Admin Console</span>
             <i class="fa-solid fa-user-shield text-xs"></i>
           </div>
 
-          <button id="adminManageStoresBtn" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all text-left">
+          <button id="adminManageStoresBtn"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all text-left">
             <i class="fa-solid fa-sliders w-4 text-center"></i>
             <span>Manage All Stores</span>
           </button>
 
-          <button id="openCreateStoreBtnHeader" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-amber-300 hover:bg-zinc-800/60 transition-all text-left">
+          <button id="openCreateStoreBtnHeader"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-amber-300 hover:bg-zinc-800/60 transition-all text-left">
             <i class="fa-solid fa-circle-plus w-4 text-center text-amber-400"></i>
             <span>Register New Store</span>
           </button>
@@ -224,7 +231,8 @@
       <div class="p-4 border-t border-zinc-800 bg-zinc-950">
         <div class="flex items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 text-xs font-bold shrink-0">
+            <div
+              class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 text-xs font-bold shrink-0">
               <i class="fa-solid fa-user"></i>
             </div>
             <div class="min-w-0">
@@ -240,27 +248,31 @@
             <button id="userMenuBtn" class="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800">
               <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
             </button>
-            
-            <div id="userMenuDropdown" class="hidden absolute bottom-10 right-0 w-56 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-2 z-50">
+
+            <div id="userMenuDropdown"
+              class="hidden absolute bottom-10 right-0 w-56 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-2 z-50">
               <div class="px-4 py-2 border-b border-zinc-800">
                 <p class="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">Active Session</p>
                 <p id="dropdownUserRole" class="text-xs font-bold text-white font-mono mt-0.5">Role: Store</p>
               </div>
 
-              <button id="resetStoreDataBtn" class="w-full text-left px-4 py-2 text-xs text-zinc-300 hover:bg-zinc-800 flex items-center gap-2">
+              <button id="resetStoreDataBtn"
+                class="w-full text-left px-4 py-2 text-xs text-zinc-300 hover:bg-zinc-800 flex items-center gap-2">
                 <i class="fa-solid fa-rotate-left w-4 text-cyan-400"></i> Reset Store Demo Data
               </button>
-              
+
               <div class="border-t border-zinc-800 my-1"></div>
-              
-              <button id="logoutBtn" class="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
+
+              <button id="logoutBtn"
+                class="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket w-4"></i> Log Out
               </button>
             </div>
           </div>
         </div>
 
-        <button id="sidebarLogoutBtn" type="button" class="w-full py-2 bg-zinc-800 hover:bg-rose-500/10 text-zinc-300 hover:text-rose-400 border border-zinc-700/60 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2">
+        <button id="sidebarLogoutBtn" type="button"
+          class="w-full py-2 bg-zinc-800 hover:bg-rose-500/10 text-zinc-300 hover:text-rose-400 border border-zinc-700/60 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2">
           <i class="fa-solid fa-right-from-bracket text-xs"></i> Log Out
         </button>
       </div>
@@ -269,10 +281,11 @@
 
     <!-- MAIN RIGHT CONTENT WORKSPACE -->
     <div class="flex-1 flex flex-col min-w-0 min-h-screen w-full overflow-x-hidden">
-      
+
       <!-- TOP CONTENT HEADER BAR -->
-      <header class="h-14 border-b border-zinc-800 bg-zinc-900/80 sticky top-0 z-30 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4">
-        
+      <header
+        class="h-14 border-b border-zinc-800 bg-zinc-900/80 sticky top-0 z-30 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-4">
+
         <!-- Left Title & Sidebar Toggle -->
         <div class="flex items-center gap-3">
           <button id="sidebarToggleBtn" type="button" class="p-2 text-zinc-400 hover:text-white rounded-lg md:hidden">
@@ -290,19 +303,24 @@
         <div class="flex items-center gap-3">
           <!-- Notification Center Bell & Dropdown -->
           <div class="relative">
-            <button id="notifBellBtn" type="button" onclick="toggleNotificationDropdown(event)" class="relative p-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/80 rounded-xl transition-all flex items-center justify-center cursor-pointer" title="Notifications & Alerts">
+            <button id="notifBellBtn" type="button" onclick="toggleNotificationDropdown(event)"
+              class="relative p-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/80 rounded-xl transition-all flex items-center justify-center cursor-pointer"
+              title="Notifications & Alerts">
               <i class="fa-solid fa-bell text-sm"></i>
-              <span id="notifBadgeCount" class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] h-[18px] text-[10px] font-extrabold text-white bg-rose-500 rounded-full flex items-center justify-center border-2 border-zinc-900 animate-pulse">0</span>
+              <span id="notifBadgeCount"
+                class="hidden absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] h-[18px] text-[10px] font-extrabold text-white bg-rose-500 rounded-full flex items-center justify-center border-2 border-zinc-900 animate-pulse">0</span>
             </button>
 
             <!-- Notification Dropdown Panel -->
-            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-[min(24rem,calc(100vw-1rem))] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div id="notifDropdown"
+              class="hidden absolute right-0 mt-2 w-[min(24rem,calc(100vw-1rem))] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
               <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
                 <div class="flex items-center gap-2">
                   <i class="fa-solid fa-bell text-amber-400 text-xs"></i>
                   <h3 class="text-xs font-bold text-white tracking-wide uppercase">Notifications</h3>
                 </div>
-                <button id="markAllNotifsReadBtn" type="button" class="text-[11px] text-zinc-400 hover:text-white font-medium transition-colors">
+                <button id="markAllNotifsReadBtn" type="button"
+                  class="text-[11px] text-zinc-400 hover:text-white font-medium transition-colors">
                   Mark all read
                 </button>
               </div>
@@ -319,7 +337,8 @@
             </div>
           </div>
 
-          <button id="openAddAssetBtn" class="px-3.5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
+          <button id="openAddAssetBtn"
+            class="px-3.5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
             <i class="fa-solid fa-plus text-xs"></i>
             <span>Add New Asset</span>
           </button>
@@ -334,10 +353,12 @@
         <!-- ========================================== -->
         <section id="statsSection" class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <!-- Total Assets -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
+          <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Total Assets</span>
-              <div class="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700">
+              <div
+                class="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700">
                 <i class="fa-solid fa-boxes-stacked text-xs"></i>
               </div>
             </div>
@@ -351,10 +372,12 @@
           </div>
 
           <!-- Active / Good -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
+          <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Good Condition</span>
-              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <div
+                class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                 <i class="fa-solid fa-circle-check text-xs"></i>
               </div>
             </div>
@@ -368,16 +391,20 @@
           </div>
 
           <!-- Maintenance Needed -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
+          <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Needs Service</span>
-              <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+              <div
+                class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
                 <i class="fa-solid fa-wrench text-xs"></i>
               </div>
             </div>
             <div class="flex items-baseline gap-2">
               <span id="statMaintCount" class="text-2xl font-extrabold text-amber-400">0</span>
-              <span id="statMaintBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">Action Needed</span>
+              <span id="statMaintBadge"
+                class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">Action
+                Needed</span>
             </div>
             <div class="w-full bg-zinc-800 h-1 rounded-full mt-3 overflow-hidden">
               <div id="statMaintBar" class="bg-amber-500 h-full w-0 rounded-full transition-all duration-500"></div>
@@ -385,10 +412,12 @@
           </div>
 
           <!-- Out of Service -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
+          <div
+            class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group hover:border-zinc-700 transition-all">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Out of Service</span>
-              <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <div
+                class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
                 <i class="fa-solid fa-triangle-exclamation text-xs"></i>
               </div>
             </div>
@@ -408,21 +437,19 @@
         <!-- ========================================== -->
         <section class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            
+
             <!-- Search Box -->
             <div class="relative flex-1">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
-              <input 
-                type="text" 
-                id="searchInput" 
-                placeholder="Search by asset name, ID, serial number, or location..." 
-                class="w-full pl-10 pr-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all"
-              >
+              <i
+                class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+              <input type="text" id="searchInput" placeholder="Search by asset name, ID, serial number, or location..."
+                class="w-full pl-10 pr-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all">
             </div>
 
             <!-- Category Filter & View Mode Toggles -->
             <div class="flex items-center gap-3">
-              <select id="categoryFilter" class="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-xs sm:text-sm text-zinc-200 focus:outline-none focus:border-zinc-600">
+              <select id="categoryFilter"
+                class="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-xs sm:text-sm text-zinc-200 focus:outline-none focus:border-zinc-600">
                 <option value="ALL">All Categories</option>
                 <option value="HVAC / Aircon">HVAC / Aircon</option>
                 <option value="Laptops & IT">Laptops & IT</option>
@@ -436,10 +463,12 @@
 
               <!-- Layout Switcher (Table vs Card) -->
               <div class="flex items-center p-1 bg-zinc-950 rounded-lg border border-zinc-800">
-                <button id="viewTableViewBtn" class="p-1.5 rounded text-white bg-zinc-800 transition-colors" title="Table View">
+                <button id="viewTableViewBtn" class="p-1.5 rounded text-white bg-zinc-800 transition-colors"
+                  title="Table View">
                   <i class="fa-solid fa-list-ul text-sm"></i>
                 </button>
-                <button id="viewCardViewBtn" class="p-1.5 rounded text-zinc-400 hover:text-white transition-colors" title="Card View">
+                <button id="viewCardViewBtn" class="p-1.5 rounded text-zinc-400 hover:text-white transition-colors"
+                  title="Card View">
                   <i class="fa-solid fa-grip text-sm"></i>
                 </button>
               </div>
@@ -448,23 +477,36 @@
 
           <!-- Status Tabs Chips -->
           <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs border-t border-zinc-800/80 pt-3">
-            <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mr-1 shrink-0">Filter Status:</span>
-            <button class="status-tab-btn active px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-all border border-zinc-700 shrink-0" data-status="ALL">
+            <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[10px] mr-1 shrink-0">Filter
+              Status:</span>
+            <button
+              class="status-tab-btn active px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-all border border-zinc-700 shrink-0"
+              data-status="ALL">
               All Assets (<span id="countTabAll">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Completed">
+            <button
+              class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0"
+              data-status="Completed">
               🟢 Completed (<span id="countTabCompleted">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Overdue">
+            <button
+              class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0"
+              data-status="Overdue">
               🔴 Overdue (<span id="countTabOverdue">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Due Today">
+            <button
+              class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0"
+              data-status="Due Today">
               🟠 Due Today (<span id="countTabDueToday">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Due Soon">
+            <button
+              class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0"
+              data-status="Due Soon">
               🟡 Due Soon (<span id="countTabDueSoon">0</span>)
             </button>
-            <button class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0" data-status="Scheduled">
+            <button
+              class="status-tab-btn px-3 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-medium border border-zinc-800 transition-all shrink-0"
+              data-status="Scheduled">
               🔵 Scheduled (<span id="countTabScheduled">0</span>)
             </button>
           </div>
@@ -503,13 +545,17 @@
         </div>
 
         <!-- EMPTY STATE -->
-        <div id="emptyState" class="hidden bg-zinc-900/60 border border-zinc-800 border-dashed rounded-xl p-12 text-center">
-          <div class="w-14 h-14 rounded-xl bg-zinc-800 text-zinc-500 flex items-center justify-center mx-auto mb-4 text-xl">
+        <div id="emptyState"
+          class="hidden bg-zinc-900/60 border border-zinc-800 border-dashed rounded-xl p-12 text-center">
+          <div
+            class="w-14 h-14 rounded-xl bg-zinc-800 text-zinc-500 flex items-center justify-center mx-auto mb-4 text-xl">
             <i class="fa-solid fa-box-open"></i>
           </div>
           <h3 class="text-base font-bold text-white mb-1">No Assets Found</h3>
-          <p class="text-xs text-zinc-400 max-w-sm mx-auto mb-5">There are no assets matching your current search criteria or status filter for this store.</p>
-          <button id="emptyAddBtn" class="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all inline-flex items-center gap-2">
+          <p class="text-xs text-zinc-400 max-w-sm mx-auto mb-5">There are no assets matching your current search
+            criteria or status filter for this store.</p>
+          <button id="emptyAddBtn"
+            class="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all inline-flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Add New Asset
           </button>
         </div>
@@ -534,31 +580,37 @@
   <!-- ========================================== -->
   <!-- 3. MODAL: ADMIN STORE MANAGEMENT PANEL     -->
   <!-- ========================================== -->
-  <div id="adminStoreManagerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
-      
+  <div id="adminStoreManagerModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+          <div
+            class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
             <i class="fa-solid fa-sliders text-sm"></i>
           </div>
           <div>
             <h3 class="text-base font-bold text-white">Admin Store Management Console</h3>
-            <p class="text-xs text-zinc-400">Only Admin accounts can create stores, assign Store Codes, and update passwords.</p>
+            <p class="text-xs text-zinc-400">Only Admin accounts can create stores, assign Store Codes, and update
+              passwords.</p>
           </div>
         </div>
-        <button id="closeAdminStoreManagerModalBtn" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800">
+        <button id="closeAdminStoreManagerModalBtn"
+          class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
       <!-- Modal Body Content -->
       <div class="p-6 overflow-y-auto space-y-6 flex-1">
-        
+
         <div class="flex items-center justify-between">
           <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Registered Stores Directory</h4>
-          <button id="adminCreateNewStoreBtn" type="button" class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5">
+          <button id="adminCreateNewStoreBtn" type="button"
+            class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5">
             <i class="fa-solid fa-plus text-xs"></i> Register New Store
           </button>
         </div>
@@ -589,13 +641,16 @@
   <!-- ========================================== -->
   <!-- 4. MODAL: CREATE / EDIT STORE CREDENTIALS  -->
   <!-- ========================================== -->
-  <div id="storeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
-      
+  <div id="storeModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
+
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+          <div
+            class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
             <i class="fa-solid fa-key text-sm"></i>
           </div>
           <h3 id="storeModalTitle" class="text-base font-bold text-white">Register New Store Account</h3>
@@ -613,13 +668,8 @@
           <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="newStoreCode">
             Unique Store Code * (Admin Assigned)
           </label>
-          <input 
-            type="text" 
-            id="newStoreCode" 
-            placeholder="e.g. STORE-03 or WEST-01" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono uppercase placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-          >
+          <input type="text" id="newStoreCode" placeholder="e.g. STORE-03 or WEST-01" required
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono uppercase placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
           <div id="storeCodeAvailability" class="mt-1.5 text-[11px] font-medium flex items-center gap-1.5 hidden"></div>
         </div>
 
@@ -627,51 +677,44 @@
           <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="newStoreName">
             Store Name / Branch Location *
           </label>
-          <input 
-            type="text" 
-            id="newStoreName" 
-            placeholder="e.g. Westside Retail Branch" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-          >
+          <input type="text" id="newStoreName" placeholder="e.g. Westside Retail Branch" required
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="newStorePassword">
+          <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+            for="newStorePassword">
             Assigned Store Password *
           </label>
-          <input 
-            type="text" 
-            id="newStorePassword" 
-            placeholder="e.g. pass123" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-          >
+          <input type="text" id="newStorePassword" placeholder="e.g. pass123" required
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
         </div>
 
         <div id="seedOptionContainer">
-          <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="newStoreSeedOption">
+          <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+            for="newStoreSeedOption">
             Initial Data Setup
           </label>
-          <select 
-            id="newStoreSeedOption" 
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-200 focus:outline-none focus:border-zinc-600"
-          >
+          <select id="newStoreSeedOption"
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-200 focus:outline-none focus:border-zinc-600">
             <option value="empty">Start with Clean Empty Store</option>
             <option value="seed">Pre-load Sample Demo Equipment &amp; Logs</option>
           </select>
         </div>
 
-        <div id="storeFormError" class="hidden p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl flex items-center gap-2">
+        <div id="storeFormError"
+          class="hidden p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl flex items-center gap-2">
           <i class="fa-solid fa-circle-exclamation text-sm"></i>
           <span id="storeFormErrorText">Store code already exists.</span>
         </div>
 
         <div class="pt-3 border-t border-zinc-800 flex items-center justify-end gap-3">
-          <button type="button" id="cancelStoreModalBtn" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
+          <button type="button" id="cancelStoreModalBtn"
+            class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
             Cancel
           </button>
-          <button type="submit" class="px-5 py-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all">
+          <button type="submit"
+            class="px-5 py-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all">
             Save Store Credentials
           </button>
         </div>
@@ -683,13 +726,16 @@
   <!-- ========================================== -->
   <!-- 5. MODAL: ADD / EDIT ASSET                 -->
   <!-- ========================================== -->
-  <div id="assetModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
-      
+  <div id="assetModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
+
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center border border-zinc-700">
+          <div
+            class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center border border-zinc-700">
             <i class="fa-solid fa-pen-to-square text-sm"></i>
           </div>
           <h3 id="assetModalTitle" class="text-base font-bold text-white">Add New Asset</h3>
@@ -707,25 +753,18 @@
           <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormName">
             Asset Name *
           </label>
-          <input 
-            type="text" 
-            id="assetFormName" 
-            placeholder="e.g. Daikin Inverter Split AC 2.5HP" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-          >
+          <input type="text" id="assetFormName" placeholder="e.g. Daikin Inverter Split AC 2.5HP" required
+            class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormCategory">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormCategory">
               Category *
             </label>
-            <select 
-              id="assetFormCategory" 
-              required 
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600"
-            >
+            <select id="assetFormCategory" required
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600">
               <option value="HVAC / Aircon">HVAC / Aircon</option>
               <option value="Laptops & IT">Laptops & IT</option>
               <option value="POS & Cashier">POS & Cashier</option>
@@ -738,28 +777,23 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormSerial">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormSerial">
               Serial / Asset ID (Optional)
             </label>
-            <input 
-              type="text" 
-              id="assetFormSerial" 
-              placeholder="e.g. SN-8849-AC" 
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-            >
+            <input type="text" id="assetFormSerial" placeholder="e.g. SN-8849-AC"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormStatus">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormStatus">
               Current Condition / Status *
             </label>
-            <select 
-              id="assetFormStatus" 
-              required 
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600"
-            >
+            <select id="assetFormStatus" required
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600">
               <option value="Good">Good Condition</option>
               <option value="Maintenance Needed">Maintenance Needed</option>
               <option value="Out of Service">Out of Service</option>
@@ -767,55 +801,41 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormLocation">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormLocation">
               Location / Area
             </label>
-            <input 
-              type="text" 
-              id="assetFormLocation" 
-              placeholder="e.g. Counter 1, Kitchen" 
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-            >
+            <input type="text" id="assetFormLocation" placeholder="e.g. Counter 1, Kitchen"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormLastMaint">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormLastMaint">
               Last Maintenance Date
             </label>
-            <input 
-              type="date" 
-              id="assetFormLastMaint" 
-              onclick="this.showPicker && this.showPicker()"
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600 cursor-pointer"
-            >
+            <input type="date" id="assetFormLastMaint" onclick="this.showPicker && this.showPicker()"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-zinc-600 cursor-pointer">
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1.5" for="assetFormDueDate">
+            <label class="block text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1.5"
+              for="assetFormDueDate">
               <i class="fa-solid fa-calendar-check mr-1"></i> Due Date (Admin Assigned)
             </label>
-            <input 
-              type="date" 
-              id="assetFormDueDate" 
-              onclick="this.showPicker && this.showPicker()"
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-amber-500/30 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500 font-mono cursor-pointer"
-            >
+            <input type="date" id="assetFormDueDate" onclick="this.showPicker && this.showPicker()"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-amber-500/30 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500 font-mono cursor-pointer">
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5" for="assetFormValue">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
+              for="assetFormValue">
               Est. Value / Cost ($)
             </label>
-            <input 
-              type="number" 
-              id="assetFormValue" 
-              placeholder="1200" 
-              min="0"
-              step="0.01"
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-            >
+            <input type="number" id="assetFormValue" placeholder="1200" min="0" step="0.01"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
           </div>
         </div>
 
@@ -824,11 +844,12 @@
           <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
             Asset Photo / Image (Upload File or URL Link)
           </label>
-          
+
           <div class="flex items-center gap-2">
             <label class="flex-1 cursor-pointer">
               <input type="file" id="assetFormFileInput" accept="image/*" class="hidden">
-              <div class="px-3.5 py-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs text-zinc-300 flex items-center justify-center gap-2 transition-colors border-dashed">
+              <div
+                class="px-3.5 py-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs text-zinc-300 flex items-center justify-center gap-2 transition-colors border-dashed">
                 <i class="fa-solid fa-cloud-arrow-up text-zinc-400 text-sm"></i>
                 <span id="assetFileLabel">Choose Local Device Image</span>
               </div>
@@ -836,37 +857,46 @@
           </div>
 
           <div class="relative">
-            <input 
-              type="url" 
-              id="assetFormImage" 
-              placeholder="Or paste external image URL (https://...)" 
-              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
-            >
+            <input type="url" id="assetFormImage" placeholder="Or paste external image URL (https://...)"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
           </div>
 
           <!-- Preview & Presets Bar -->
           <div class="flex items-center gap-3 pt-1">
-            <div id="assetFormPreviewBox" class="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden flex items-center justify-center text-zinc-600 shrink-0">
+            <div id="assetFormPreviewBox"
+              class="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden flex items-center justify-center text-zinc-600 shrink-0">
               <i class="fa-solid fa-image text-lg"></i>
             </div>
             <div class="flex-1 overflow-hidden">
               <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-1">Quick Sample Presets:</p>
               <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]">
-                <button type="button" class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300" data-url="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80">Aircon</button>
-                <button type="button" class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300" data-url="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80">Laptop</button>
-                <button type="button" class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300" data-url="https://images.unsplash.com/photo-1556742049-0a670fc8078a?w=500&auto=format&fit=crop&q=80">POS</button>
-                <button type="button" class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300" data-url="https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80">Fridge</button>
-                <button type="button" class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300" data-url="https://images.unsplash.com/photo-1580481072645-022f9a6d83d0?w=500&auto=format&fit=crop&q=80">Furniture</button>
+                <button type="button"
+                  class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+                  data-url="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80">Aircon</button>
+                <button type="button"
+                  class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+                  data-url="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80">Laptop</button>
+                <button type="button"
+                  class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+                  data-url="https://images.unsplash.com/photo-1556742049-0a670fc8078a?w=500&auto=format&fit=crop&q=80">POS</button>
+                <button type="button"
+                  class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+                  data-url="https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80">Fridge</button>
+                <button type="button"
+                  class="preset-img-btn px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+                  data-url="https://images.unsplash.com/photo-1580481072645-022f9a6d83d0?w=500&auto=format&fit=crop&q=80">Furniture</button>
               </div>
             </div>
           </div>
         </div>
 
         <div class="pt-4 border-t border-zinc-800 flex items-center justify-end gap-3">
-          <button type="button" id="cancelAssetModalBtn" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
+          <button type="button" id="cancelAssetModalBtn"
+            class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
             Cancel
           </button>
-          <button type="submit" class="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all">
+          <button type="submit"
+            class="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all">
             Save Asset Record
           </button>
         </div>
@@ -878,9 +908,11 @@
   <!-- ========================================== -->
   <!-- 6. MODAL: MAINTENANCE HISTORY & LOG TIMELINE -->
   <!-- ========================================== -->
-  <div id="historyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
-      
+  <div id="historyModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
         <div>
@@ -909,15 +941,18 @@
             <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
               <i class="fa-solid fa-wrench"></i> Service Log &amp; Comments
             </h4>
-            <button id="toggleNewLogFormBtn" type="button" onclick="toggleNewLogForm(event)" class="text-xs text-zinc-300 hover:text-white font-medium bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 cursor-pointer">
+            <button id="toggleNewLogFormBtn" type="button" onclick="toggleNewLogForm(event)"
+              class="text-xs text-zinc-300 hover:text-white font-medium bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 cursor-pointer">
               <i class="fa-solid fa-plus text-[10px] mr-1"></i> Add Comment / Service Log
             </button>
           </div>
 
           <!-- Permission Warning Notice for Store Users viewing other stores -->
-          <div id="logPermissionNotice" class="hidden mt-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs rounded-xl flex items-start gap-2">
+          <div id="logPermissionNotice"
+            class="hidden mt-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs rounded-xl flex items-start gap-2">
             <i class="fa-solid fa-shield-halved text-sm text-amber-400"></i>
-            <span>Read-Only View: Comments can only be added by <strong>Admin accounts</strong> or the <strong>assigned Store account</strong> for this store.</span>
+            <span>Read-Only View: Comments can only be added by <strong>Admin accounts</strong> or the <strong>assigned
+                Store account</strong> for this store.</span>
           </div>
 
           <!-- Inline Log Form -->
@@ -926,23 +961,28 @@
             <input type="hidden" id="logFormCompletionMode" value="0">
 
             <!-- COMPLETION MODE BANNER with live 3-field checklist -->
-            <div id="completionModeBanner" class="hidden bg-emerald-500/8 border border-emerald-500/30 rounded-xl p-4 space-y-3">
+            <div id="completionModeBanner"
+              class="hidden bg-emerald-500/8 border border-emerald-500/30 rounded-xl p-4 space-y-3">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
                 <p class="text-xs font-bold text-emerald-300">Mark Task as Completed — 3 Required Fields</p>
               </div>
-              <p class="text-[11px] text-zinc-400 pl-1">All three fields below must be filled before you can submit completion.</p>
+              <p class="text-[11px] text-zinc-400 pl-1">All three fields below must be filled before you can submit
+                completion.</p>
               <!-- Live checklist -->
               <div class="grid grid-cols-1 gap-1.5 pl-1">
-                <div id="checklistDate" class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
+                <div id="checklistDate"
+                  class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
                   <i id="checklistDateIcon" class="fa-solid fa-circle-xmark text-[11px]"></i>
                   <span>Date Completed — <span class="font-normal">not set</span></span>
                 </div>
-                <div id="checklistName" class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
+                <div id="checklistName"
+                  class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
                   <i id="checklistNameIcon" class="fa-solid fa-circle-xmark text-[11px]"></i>
                   <span>Responsible — <span class="font-normal">not entered</span></span>
                 </div>
-                <div id="checklistPhoto" class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
+                <div id="checklistPhoto"
+                  class="flex items-center gap-2 text-[11px] font-medium transition-colors text-rose-400">
                   <i id="checklistPhotoIcon" class="fa-solid fa-circle-xmark text-[11px]"></i>
                   <span>Proof Photo — <span class="font-normal">not uploaded</span></span>
                 </div>
@@ -954,11 +994,14 @@
                 <label class="block text-xs font-semibold text-zinc-300 mb-1" id="logFormDateLabel">
                   Service Date
                 </label>
-                <input type="date" id="logFormDate" onclick="this.showPicker && this.showPicker()" class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white cursor-pointer">
+                <input type="date" id="logFormDate" onclick="this.showPicker && this.showPicker()"
+                  class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white cursor-pointer">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-zinc-300 mb-1" id="logFormTechnicianLabel">Responsible</label>
-                <input type="text" id="logFormTechnician" placeholder="e.g. Juan Santos — person responsible" class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
+                <label class="block text-xs font-semibold text-zinc-300 mb-1"
+                  id="logFormTechnicianLabel">Responsible</label>
+                <input type="text" id="logFormTechnician" placeholder="e.g. Juan Santos — person responsible"
+                  class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
                 <div id="nameRequiredNotice" class="hidden mt-1 text-[11px] text-rose-400 flex items-center gap-1.5">
                   <i class="fa-solid fa-circle-exclamation text-[10px]"></i>
                   <span>Name of the person responsible is required.</span>
@@ -968,8 +1011,10 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-zinc-300 mb-1">Update Asset Condition <span class="text-rose-400">*</span></label>
-                <select id="logFormNewStatus" required class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Update Asset Condition <span
+                    class="text-rose-400">*</span></label>
+                <select id="logFormNewStatus" required
+                  class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
                   <option value="Good">Good (Operational)</option>
                   <option value="Maintenance Needed">Maintenance Needed</option>
                   <option value="Out of Service">Out of Service</option>
@@ -977,7 +1022,8 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-zinc-300 mb-1">Cost ($)</label>
-                <input type="number" id="logFormCost" min="0" step="0.01" placeholder="150.00" class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
+                <input type="number" id="logFormCost" min="0" step="0.01" placeholder="150.00"
+                  class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
               </div>
             </div>
 
@@ -994,14 +1040,17 @@
               <div class="flex items-center gap-2">
                 <label class="flex-1 cursor-pointer">
                   <input type="file" id="logFormFileInput" accept="image/*" class="hidden">
-                  <div id="logFileUploadBtn" class="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 flex items-center justify-center gap-2 transition-colors border-dashed">
+                  <div id="logFileUploadBtn"
+                    class="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 flex items-center justify-center gap-2 transition-colors border-dashed">
                     <i class="fa-solid fa-upload text-zinc-400"></i>
                     <span id="logFileLabel">Upload Local Photo</span>
                   </div>
                 </label>
-                <input type="text" id="logFormImage" placeholder="Or paste image URL https://..." class="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
+                <input type="text" id="logFormImage" placeholder="Or paste image URL https://..."
+                  class="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white">
               </div>
-              <div id="logFormPreviewBox" class="hidden w-full h-24 rounded-lg bg-zinc-900 border border-zinc-700 overflow-hidden text-center flex items-center justify-center">
+              <div id="logFormPreviewBox"
+                class="hidden w-full h-24 rounded-lg bg-zinc-900 border border-zinc-700 overflow-hidden text-center flex items-center justify-center">
               </div>
               <!-- Live proof check tick -->
               <div id="proofUploadedTick" class="hidden text-[11px] text-emerald-400 flex items-center gap-1.5">
@@ -1011,13 +1060,18 @@
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1" id="logFormNotesLabel">Service Notes &amp; Comments</label>
-              <textarea id="logFormNotes" rows="3" placeholder="Describe maintenance work, comments, parts replaced, or diagnostic notes..." class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white placeholder-zinc-500"></textarea>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1" id="logFormNotesLabel">Service Notes &amp;
+                Comments</label>
+              <textarea id="logFormNotes" rows="3"
+                placeholder="Describe maintenance work, comments, parts replaced, or diagnostic notes..."
+                class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white placeholder-zinc-500"></textarea>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">
-              <button type="button" id="cancelLogFormBtn" class="px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs rounded-lg">Cancel</button>
-              <button type="submit" id="logFormSubmitBtn" class="px-4 py-1.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5">
+              <button type="button" id="cancelLogFormBtn"
+                class="px-3 py-1.5 bg-zinc-800 text-zinc-300 text-xs rounded-lg">Cancel</button>
+              <button type="submit" id="logFormSubmitBtn"
+                class="px-4 py-1.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5">
                 <i class="fa-solid fa-floppy-disk text-[10px]"></i>
                 <span id="logFormSubmitLabel">Save Comment / Service Log</span>
               </button>
@@ -1027,11 +1081,13 @@
 
         <!-- History Timeline Container -->
         <div>
-          <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Historical Maintenance Records &amp; Comments</h4>
-          <div id="timelineContainer" class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-800">
+          <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Historical Maintenance Records &amp;
+            Comments</h4>
+          <div id="timelineContainer"
+            class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-800">
             <!-- Timeline items rendered dynamically by script.js -->
           </div>
-          
+
           <div id="emptyTimeline" class="hidden text-center py-8 text-zinc-500 text-xs">
             <i class="fa-solid fa-clipboard-list text-2xl mb-2 text-zinc-600 block"></i>
             No maintenance records or comments logged for this asset yet.
@@ -1047,28 +1103,35 @@
   <!-- ========================================== -->
   <!-- 7. IMAGE LIGHTBOX / VIEWER MODAL          -->
   <!-- ========================================== -->
-  <div id="imageLightboxModal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-md">
-    <div class="relative max-w-4xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" style="animation: modalSlideUp 0.2s cubic-bezier(0.16,1,0.3,1) forwards;">
+  <div id="imageLightboxModal"
+    class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-md">
+    <div
+      class="relative max-w-4xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      style="animation: modalSlideUp 0.2s cubic-bezier(0.16,1,0.3,1) forwards;">
       <!-- Lightbox Header -->
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+          <div
+            class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
             <i class="fa-solid fa-image text-sm"></i>
           </div>
           <h3 id="lightboxTitle" class="text-sm font-bold text-white truncate max-w-md">Image Preview</h3>
         </div>
         <div class="flex items-center gap-2">
-          <a id="lightboxDownloadBtn" download="asset_image.jpg" href="#" target="_blank" class="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm">
+          <a id="lightboxDownloadBtn" download="asset_image.jpg" href="#" target="_blank"
+            class="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm">
             <i class="fa-solid fa-download text-xs"></i> Download Image
           </a>
-          <button id="closeLightboxBtn" type="button" onclick="closeImageLightbox()" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-colors">
+          <button id="closeLightboxBtn" type="button" onclick="closeImageLightbox()"
+            class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-colors">
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
         </div>
       </div>
       <!-- Lightbox Image Display -->
       <div class="p-6 flex-1 flex items-center justify-center bg-zinc-950/60 overflow-auto">
-        <img id="lightboxImage" src="" alt="Full preview" class="max-h-[70vh] w-auto max-w-full object-contain rounded-xl border border-zinc-800 shadow-2xl">
+        <img id="lightboxImage" src="" alt="Full preview"
+          class="max-h-[70vh] w-auto max-w-full object-contain rounded-xl border border-zinc-800 shadow-2xl">
       </div>
     </div>
   </div>
@@ -1076,10 +1139,13 @@
   <!-- ========================================== -->
   <!-- 8. CUSTOM CONFIRMATION MODAL               -->
   <!-- ========================================== -->
-  <div id="confirmModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-sm">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" style="animation: modalSlideUp 0.2s cubic-bezier(0.16,1,0.3,1) forwards;">
+  <div id="confirmModal"
+    class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-sm">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+      style="animation: modalSlideUp 0.2s cubic-bezier(0.16,1,0.3,1) forwards;">
       <div class="px-6 pt-6 pb-2 flex items-start gap-4">
-        <div id="confirmModalIcon" class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
+        <div id="confirmModalIcon"
+          class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
           <i class="fa-solid fa-triangle-exclamation text-rose-400 text-sm"></i>
         </div>
         <div class="flex-1 min-w-0">
@@ -1088,10 +1154,12 @@
         </div>
       </div>
       <div class="px-6 pb-6 pt-4 flex items-center justify-end gap-3 border-t border-zinc-800 mt-4">
-        <button id="confirmModalCancelBtn" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
+        <button id="confirmModalCancelBtn"
+          class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-lg transition-colors">
           Cancel
         </button>
-        <button id="confirmModalConfirmBtn" class="px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1.5">
+        <button id="confirmModalConfirmBtn"
+          class="px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1.5">
           <i id="confirmModalBtnIcon" class="fa-solid fa-trash text-xs"></i>
           <span id="confirmModalBtnLabel">Confirm</span>
         </button>
@@ -1110,4 +1178,5 @@
   <!-- Custom App JavaScript -->
   <script src="script.js"></script>
 </body>
+
 </html>
