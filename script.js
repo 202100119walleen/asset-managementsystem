@@ -367,7 +367,13 @@ class StorageManager {
       return { success: false, message: `Store code "${cleanCode}" already exists.` };
     }
 
-    const newStore = { code: cleanCode, name: name.trim(), password: password.trim() };
+    const newStore = { 
+      code: cleanCode, 
+      name: name.trim(), 
+      password: password.trim(), 
+      isNew: true,
+      createdAt: new Date().toISOString() 
+    };
     stores.push(newStore);
     StorageManager.saveStores(stores);
 
@@ -379,9 +385,24 @@ class StorageManager {
       localStorage.setItem(`ams_logs_${cleanCode}`, JSON.stringify([]));
     }
 
+    // Add System Notification Indicator
+    StorageManager.addNotification({
+      recipientRole: 'admin',
+      recipientStoreCode: null,
+      title: 'New Store Registered',
+      message: `Admin registered new store branch "${cleanCode}" (${name.trim()})`,
+      assetId: '',
+      storeCode: cleanCode,
+      type: 'assignment'
+    });
+
     // Push to Supabase
     if (supabaseClient) {
-      supabaseClient.from('stores').insert([newStore]).catch(err => console.log('Supabase store insert note:', err));
+      supabaseClient.from('stores').insert([{
+        code: newStore.code,
+        name: newStore.name,
+        password: newStore.password
+      }]).catch(err => console.log('Supabase store insert note:', err));
     }
 
     return { success: true, store: newStore };
@@ -816,16 +837,22 @@ function switchLoginTab(mode) {
 function renderStoreAccountsList() {
   const stores = StorageManager.getStores();
 
-  DOM.storeListContainer.innerHTML = stores.map(s => `
-    <button type="button" class="demo-login-btn p-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-left flex items-center justify-between text-zinc-300 transition-colors" data-code="${escapeHTML(s.code)}">
-      <span class="flex items-center gap-2">
-        <i class="fa-solid fa-store text-zinc-400 text-xs"></i>
-        <strong class="text-white font-mono text-xs">${escapeHTML(s.code)}</strong> 
-        <span class="text-zinc-400 text-[10px] font-normal truncate max-w-[140px]">(${escapeHTML(s.name)})</span>
-      </span>
-      <span class="text-[10px] text-zinc-400 font-medium">Select &rarr;</span>
-    </button>
-  `).join('');
+  DOM.storeListContainer.innerHTML = stores.map(s => {
+    const isNew = s.isNew || (s.createdAt && (new Date() - new Date(s.createdAt)) < 1000 * 60 * 60 * 24);
+    const newBadge = isNew ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-extrabold font-mono tracking-wider animate-pulse">NEW</span>` : '';
+
+    return `
+      <button type="button" class="demo-login-btn p-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-left flex items-center justify-between text-zinc-300 transition-colors" data-code="${escapeHTML(s.code)}">
+        <span class="flex items-center gap-2 overflow-hidden">
+          <i class="fa-solid fa-store text-zinc-400 text-xs shrink-0"></i>
+          <strong class="text-white font-mono text-xs">${escapeHTML(s.code)}</strong> 
+          ${newBadge}
+          <span class="text-zinc-400 text-[10px] font-normal truncate max-w-[120px]">(${escapeHTML(s.name)})</span>
+        </span>
+        <span class="text-[10px] text-zinc-400 font-medium shrink-0 ml-1">Select &rarr;</span>
+      </button>
+    `;
+  }).join('');
 
   DOM.storeListContainer.querySelectorAll('.demo-login-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1008,31 +1035,38 @@ function closeAdminStoreManagerModal() {
 function renderAdminStoreTable() {
   const stores = StorageManager.getStores();
 
-  DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => `
-    <tr class="hover:bg-zinc-900/80 transition-colors border-b border-zinc-800">
-      <td class="py-3 px-4 font-mono font-bold text-amber-400">${escapeHTML(s.code)}</td>
-      <td class="py-3 px-4 text-white font-medium hidden sm:table-cell">${escapeHTML(s.name)}</td>
-      <td class="py-3 px-4 font-mono text-zinc-300 hidden md:table-cell">
-        <div class="inline-flex items-center gap-2 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
-          <span id="storePwdMask_${idx}">••••••••</span>
-          <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
-          <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-zinc-500 hover:text-white ml-1">
-            <i id="pwdEye_${idx}" class="fa-solid fa-eye text-xs"></i>
-          </button>
-        </div>
-      </td>
-      <td class="py-3 px-4 text-right">
-        <div class="flex items-center justify-end gap-2 flex-wrap">
-          <button onclick="openEditStoreModal('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg text-xs flex items-center gap-1">
-            <i class="fa-solid fa-key text-[10px]"></i> <span class="hidden sm:inline">Edit</span>
-          </button>
-          <button onclick="confirmDeleteStore('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs flex items-center gap-1">
-            <i class="fa-solid fa-trash text-[10px]"></i> <span class="hidden sm:inline">Delete</span>
-          </button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  DOM.adminStoreTableBody.innerHTML = stores.map((s, idx) => {
+    const isNew = s.isNew || (s.createdAt && (new Date() - new Date(s.createdAt)) < 1000 * 60 * 60 * 24);
+    const newBadge = isNew ? `<span class="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-extrabold font-mono tracking-wider animate-pulse">NEW</span>` : '';
+
+    return `
+      <tr class="hover:bg-zinc-900/80 transition-colors border-b border-zinc-800">
+        <td class="py-3 px-4 font-mono font-bold text-amber-400">
+          <span class="inline-flex items-center">${escapeHTML(s.code)}${newBadge}</span>
+        </td>
+        <td class="py-3 px-4 text-white font-medium hidden sm:table-cell">${escapeHTML(s.name)}</td>
+        <td class="py-3 px-4 font-mono text-zinc-300 hidden md:table-cell">
+          <div class="inline-flex items-center gap-2 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
+            <span id="storePwdMask_${idx}">••••••••</span>
+            <span id="storePwdReal_${idx}" class="hidden text-amber-300 font-bold">${escapeHTML(s.password)}</span>
+            <button type="button" onclick="toggleStorePasswordVisibility(${idx})" class="text-zinc-500 hover:text-white ml-1">
+              <i id="pwdEye_${idx}" class="fa-solid fa-eye text-xs"></i>
+            </button>
+          </div>
+        </td>
+        <td class="py-3 px-4 text-right">
+          <div class="flex items-center justify-end gap-2 flex-wrap">
+            <button onclick="openEditStoreModal('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg text-xs flex items-center gap-1">
+              <i class="fa-solid fa-key text-[10px]"></i> <span class="hidden sm:inline">Edit</span>
+            </button>
+            <button onclick="confirmDeleteStore('${escapeHTML(s.code)}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs flex items-center gap-1">
+              <i class="fa-solid fa-trash text-[10px]"></i> <span class="hidden sm:inline">Delete</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function toggleStorePasswordVisibility(idx) {
@@ -1062,6 +1096,9 @@ function openCreateStoreModal() {
   DOM.storeModalTitle.textContent = 'Register New Store Account (Admin Only)';
   DOM.seedOptionContainer.classList.remove('hidden');
   DOM.storeFormError.classList.add('hidden');
+  const storeCodeAvail = document.getElementById('storeCodeAvailability');
+  if (storeCodeAvail) storeCodeAvail.classList.add('hidden');
+  if (DOM.newStoreCode) DOM.newStoreCode.classList.remove('border-rose-500', 'border-emerald-500');
   if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
   
   DOM.storeModal.classList.remove('hidden');
@@ -1130,7 +1167,19 @@ function handleStoreFormSubmit(e) {
   renderAdminStoreTable();
   renderHeaderStoreSelector();
 
-  showToast(`Store credentials for "${result.store.code}" saved & synced to Supabase!`, 'success');
+  if (!isEditing && result.success) {
+    // Auto-select newly registered store in Admin dashboard
+    AppState.activeStore = result.store;
+    StorageManager.setActiveStoreCode(result.store.code);
+    AppState.assets = StorageManager.getAssets(result.store.code);
+    AppState.logs = StorageManager.getLogs(result.store.code);
+    if (DOM.activeStoreNameDisplay) DOM.activeStoreNameDisplay.textContent = result.store.name;
+    if (DOM.activeStoreSelect) DOM.activeStoreSelect.value = result.store.code;
+    refreshAppUI();
+    showToast(`✨ Store "${result.store.code}" (${result.store.name}) registered & activated!`, 'success');
+  } else {
+    showToast(`Store credentials for "${result.store.code}" updated & synced!`, 'success');
+  }
 }
 
 function confirmDeleteStore(storeCode) {
@@ -2953,8 +3002,39 @@ function initEventListeners() {
   });
   if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.addEventListener('click', openCreateStoreModal);
   DOM.closeStoreModalBtn.addEventListener('click', closeCreateStoreModal);
-  DOM.cancelStoreModalBtn.addEventListener('click', closeCreateStoreModal);
   DOM.storeForm.addEventListener('submit', handleStoreFormSubmit);
+
+  // Live indicator: Check store code availability as admin types
+  const newStoreCodeInput = document.getElementById('newStoreCode');
+  const storeCodeAvail = document.getElementById('storeCodeAvailability');
+  if (newStoreCodeInput && storeCodeAvail) {
+    newStoreCodeInput.addEventListener('input', () => {
+      const codeVal = newStoreCodeInput.value.trim().toUpperCase();
+      const originalCode = DOM.editStoreOriginalCode ? DOM.editStoreOriginalCode.value : '';
+      
+      if (!codeVal) {
+        storeCodeAvail.classList.add('hidden');
+        newStoreCodeInput.classList.remove('border-rose-500', 'border-emerald-500');
+        return;
+      }
+
+      const stores = StorageManager.getStores();
+      const isDuplicate = stores.some(s => s.code.toUpperCase() === codeVal && s.code.toUpperCase() !== originalCode.toUpperCase());
+
+      storeCodeAvail.classList.remove('hidden');
+      if (isDuplicate) {
+        storeCodeAvail.className = 'mt-1.5 text-[11px] font-medium flex items-center gap-1.5 text-rose-400';
+        storeCodeAvail.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <span>Store code "${codeVal}" is already registered</span>`;
+        newStoreCodeInput.classList.add('border-rose-500');
+        newStoreCodeInput.classList.remove('border-emerald-500');
+      } else {
+        storeCodeAvail.className = 'mt-1.5 text-[11px] font-medium flex items-center gap-1.5 text-emerald-400';
+        storeCodeAvail.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>Store code "${codeVal}" is available for registration</span>`;
+        newStoreCodeInput.classList.add('border-emerald-500');
+        newStoreCodeInput.classList.remove('border-rose-500');
+      }
+    });
+  }
 
   // Mobile sidebar toggle & backdrop listeners
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
