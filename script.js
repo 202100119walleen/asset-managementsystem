@@ -33,7 +33,8 @@ const DEFAULT_ADMINS = [
 
 const DEFAULT_STORES = [
   { code: 'STORE-01', name: 'Downtown Branch Store', password: 'pass123' },
-  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' }
+  { code: 'STORE-02', name: 'Uptown Branch Store', password: 'pass123' },
+  { code: 'HQ-MAIN', name: 'Corporate Headquarters', password: 'admin123' }
 ];
 
 const SEED_ASSETS_STORE_01 = [
@@ -218,22 +219,6 @@ class StorageManager {
     if (!localStorage.getItem('ams_stores')) {
       localStorage.setItem('ams_stores', JSON.stringify(DEFAULT_STORES));
     }
-    
-    // Purge HQ-MAIN if it exists in local storage
-    let stores = StorageManager.getStores();
-    if (stores.some(s => s.code === 'HQ-MAIN')) {
-      stores = stores.filter(s => s.code !== 'HQ-MAIN');
-      localStorage.setItem('ams_stores', JSON.stringify(stores));
-    }
-
-    localStorage.removeItem('ams_assets_HQ-MAIN');
-    localStorage.removeItem('ams_logs_HQ-MAIN');
-
-    if (supabaseClient) {
-      supabaseClient.from('stores').delete().eq('code', 'HQ-MAIN').catch(err => console.log('Purge HQ-MAIN store note:', err));
-      supabaseClient.from('assets').delete().eq('store_code', 'HQ-MAIN').catch(err => console.log('Purge HQ-MAIN assets note:', err));
-    }
-
     // Seed Store 01 if missing locally
     if (!localStorage.getItem('ams_assets_STORE-01')) {
       localStorage.setItem('ams_assets_STORE-01', JSON.stringify(SEED_ASSETS_STORE_01));
@@ -243,6 +228,11 @@ class StorageManager {
     if (!localStorage.getItem('ams_assets_STORE-02')) {
       localStorage.setItem('ams_assets_STORE-02', JSON.stringify(SEED_ASSETS_STORE_02));
       localStorage.setItem('ams_logs_STORE-02', JSON.stringify(SEED_LOGS_STORE_02));
+    }
+    // Seed HQ if missing locally
+    if (!localStorage.getItem('ams_assets_HQ-MAIN')) {
+      localStorage.setItem('ams_assets_HQ-MAIN', JSON.stringify([]));
+      localStorage.setItem('ams_logs_HQ-MAIN', JSON.stringify([]));
     }
     // Seed Notifications if missing locally
     if (!localStorage.getItem('ams_notifications')) {
@@ -260,7 +250,7 @@ class StorageManager {
       // 1. Sync Stores from Supabase (Safe Union Merge: preserve local stores + sync remote)
       const localStores = StorageManager.getStores();
       const { data: remoteStores, error: storesErr } = await supabaseClient.from('stores').select('*');
-      
+
       let mergedStores = [...localStores];
 
       if (!storesErr && remoteStores && remoteStores.length > 0) {
@@ -412,12 +402,12 @@ class StorageManager {
       return { success: false, message: `Store code "${cleanCode}" already exists.` };
     }
 
-    const newStore = { 
-      code: cleanCode, 
-      name: name.trim(), 
-      password: password.trim(), 
+    const newStore = {
+      code: cleanCode,
+      name: name.trim(),
+      password: password.trim(),
       isNew: true,
-      createdAt: new Date().toISOString() 
+      createdAt: new Date().toISOString()
     };
     stores.push(newStore);
     StorageManager.saveStores(stores);
@@ -695,7 +685,7 @@ const DOM = {
   // Views
   loginSection: document.getElementById('loginSection'),
   appSection: document.getElementById('appSection'),
-  
+
   // Auth Form & Tabs
   tabStoreLogin: document.getElementById('tabStoreLogin'),
   tabAdminLogin: document.getElementById('tabAdminLogin'),
@@ -912,10 +902,11 @@ function renderStoreAccountsList() {
     btn.addEventListener('click', () => {
       switchLoginTab('store');
       const code = btn.getAttribute('data-code');
+      const storeObj = stores.find(s => s.code === code);
+      const pass = storeObj ? storeObj.password : 'pass123';
       DOM.loginStoreCode.value = code;
-      DOM.loginPassword.value = '';
-      DOM.loginPassword.focus();
-      showToast(`Selected store "${code}". Please type password to log in.`, 'info');
+      DOM.loginPassword.value = pass;
+      handleLogin(code, pass);
     });
   });
 }
@@ -925,7 +916,7 @@ function handleLogin(inputCodeOrUsername, password) {
   const cleanPass = password.trim();
 
   // 1. Check if trying Admin Login
-  const matchedAdmin = DEFAULT_ADMINS.find(a => 
+  const matchedAdmin = DEFAULT_ADMINS.find(a =>
     a.username.toLowerCase() === cleanInput.toLowerCase() && a.password === cleanPass
   );
 
@@ -944,7 +935,7 @@ function handleLogin(inputCodeOrUsername, password) {
 
   // 2. Check Store Account Login
   const stores = StorageManager.getStores();
-  const matchedStore = stores.find(s => 
+  const matchedStore = stores.find(s =>
     s.code.toUpperCase() === cleanInput.toUpperCase() && s.password === cleanPass
   );
 
@@ -964,8 +955,8 @@ function handleLogin(inputCodeOrUsername, password) {
 
   // Login Failed
   DOM.loginError.classList.remove('hidden');
-  DOM.loginErrorText.textContent = AppState.loginMode === 'admin' 
-    ? 'Invalid Admin Username or Password.' 
+  DOM.loginErrorText.textContent = AppState.loginMode === 'admin'
+    ? 'Invalid Admin Username or Password.'
     : 'Invalid Store Code or Password.';
 }
 
@@ -987,7 +978,7 @@ function loadUserSession() {
   let savedSession = null;
   try {
     savedSession = JSON.parse(localStorage.getItem('ams_user_session'));
-  } catch (e) {}
+  } catch (e) { }
 
   if (!savedSession) {
     DOM.loginSection.classList.remove('hidden');
@@ -1055,7 +1046,7 @@ function renderHeaderStoreSelector() {
   if (DOM.activeStoreSelect) {
     if (isAdmin) {
       DOM.activeStoreSelect.disabled = false;
-      DOM.activeStoreSelect.innerHTML = stores.map(s => 
+      DOM.activeStoreSelect.innerHTML = stores.map(s =>
         `<option value="${s.code}" ${s.code === AppState.activeStore.code ? 'selected' : ''}>${s.code} (${s.name})</option>`
       ).join('');
     } else {
@@ -1154,7 +1145,7 @@ function openCreateStoreModal() {
   if (storeCodeAvail) storeCodeAvail.classList.add('hidden');
   if (DOM.newStoreCode) DOM.newStoreCode.classList.remove('border-rose-500', 'border-emerald-500');
   if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
-  
+
   DOM.storeModal.classList.remove('hidden');
   DOM.storeModal.classList.add('flex');
 }
@@ -1242,30 +1233,20 @@ function confirmDeleteStore(storeCode) {
     return;
   }
 
+  const stores = StorageManager.getStores();
+  if (stores.length <= 1) {
+    showToast('Cannot delete the last remaining store account.', 'error');
+    return;
+  }
+
   showConfirmModal(
-    `Delete store "${storeCode}"? This will permanently remove all its assets and data from the local system and cloud database.`,
+    `Delete store "${storeCode}"? This will permanently remove all its assets and data and cannot be undone.`,
     () => {
       StorageManager.deleteStore(storeCode);
-      const remainingStores = StorageManager.getStores();
-      if (remainingStores.length > 0) {
-        if (!AppState.activeStore || AppState.activeStore.code === storeCode) {
-          AppState.activeStore = remainingStores[0];
-          StorageManager.setActiveStoreCode(remainingStores[0].code);
-          AppState.assets = StorageManager.getAssets(remainingStores[0].code);
-          AppState.logs = StorageManager.getLogs(remainingStores[0].code);
-        }
-      } else {
-        AppState.activeStore = null;
-        StorageManager.setActiveStoreCode(null);
-        AppState.assets = [];
-        AppState.logs = [];
-      }
-
       renderStoreAccountsList();
       renderAdminStoreTable();
       renderHeaderStoreSelector();
-      refreshAppUI();
-      showToast(`Store "${storeCode}" deleted successfully.`, 'info');
+      showToast(`Store "${storeCode}" deleted.`, 'info');
     },
     'Delete Store',
     'fa-trash'
@@ -1470,15 +1451,16 @@ function initEventListeners() {
     });
   }
 
-  // Admin Quick Selection Buttons (Sets username, clears password, REQUIRES USER TO TYPE PASSWORD)
+  // Admin Quick Selection Buttons (Pre-fills credentials & logs in automatically)
   document.querySelectorAll('.admin-demo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchLoginTab('admin');
       const user = btn.getAttribute('data-user');
+      const matchedAdmin = DEFAULT_ADMINS.find(a => a.username === user);
+      const pass = matchedAdmin ? matchedAdmin.password : 'adminpass1';
       DOM.loginStoreCode.value = user;
-      DOM.loginPassword.value = '';
-      DOM.loginPassword.focus();
-      showToast(`Selected Admin account "${user}". Please type password to log in.`, 'info');
+      DOM.loginPassword.value = pass;
+      handleLogin(user, pass);
     });
   });
 
@@ -1608,7 +1590,7 @@ function initEventListeners() {
     if (file) {
       DOM.assetFileLabel.textContent = file.name;
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = function (evt) {
         const base64Url = evt.target.result;
         DOM.assetFormImage.value = base64Url;
         updateAssetFormPreview(base64Url);
@@ -1709,7 +1691,7 @@ function initSupabaseRealtime() {
 
               if (AppState.currentUser) {
                 const isUserAdmin = AppState.currentUser.role === 'admin';
-                const isTargetStore = AppState.currentUser.role === 'store' && 
+                const isTargetStore = AppState.currentUser.role === 'store' &&
                   (!notifItem.recipientStoreCode || notifItem.recipientStoreCode === AppState.currentUser.storeCode);
 
                 if ((isUserAdmin && notifItem.recipientRole === 'admin') || isTargetStore) {
@@ -1929,7 +1911,7 @@ function getStatusBadgeHTML(asset) {
 function renderDashboardStats() {
   const assets = AppState.assets;
   const totalCount = assets.length;
-  
+
   const completedAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Completed');
   const overdueAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Overdue');
   const dueTodayAssets = assets.filter(a => getTaskDueStatus(a).statusKey === 'Due Today');
@@ -1970,7 +1952,7 @@ function getFilteredAssets() {
   const assets = AppState.assets.filter(asset => {
     // Search Filter
     const query = AppState.searchQuery.toLowerCase().trim();
-    const matchesSearch = !query || 
+    const matchesSearch = !query ||
       asset.name.toLowerCase().includes(query) ||
       asset.serial.toLowerCase().includes(query) ||
       asset.id.toLowerCase().includes(query) ||
@@ -2043,7 +2025,7 @@ function renderTableView(assets) {
 
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
-    const thumbnail = asset.imageUrl 
+    const thumbnail = asset.imageUrl
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" onclick="openImageLightbox('${escapeHTML(asset.imageUrl)}', '${escapeHTML(asset.name)}')" class="w-10 h-10 rounded-xl object-cover bg-zinc-800 border border-zinc-700 cursor-pointer hover:border-amber-400 hover:scale-105 transition-all" title="Click to view & download image">`
       : `<div class="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500"><i class="fa-solid fa-box text-sm"></i></div>`;
 
@@ -2110,7 +2092,7 @@ function renderCardView(assets) {
 
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
-    const thumbnail = asset.imageUrl 
+    const thumbnail = asset.imageUrl
       ? `<img src="${asset.imageUrl}" alt="${escapeHTML(asset.name)}" onclick="openImageLightbox('${escapeHTML(asset.imageUrl)}', '${escapeHTML(asset.name)}')" class="w-full h-40 object-cover bg-zinc-800 cursor-pointer hover:opacity-90 transition-opacity" title="Click to view & download image">`
       : `<div class="w-full h-40 bg-zinc-800/80 flex items-center justify-center text-zinc-600 text-3xl"><i class="fa-solid fa-box"></i></div>`;
 
@@ -2200,7 +2182,7 @@ function openAddAssetModal() {
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = '';
   updateAssetFormPreview('');
-  
+
   DOM.assetModal.classList.remove('hidden');
   DOM.assetModal.classList.add('flex');
 }
@@ -2321,7 +2303,7 @@ function handleAssetFormSubmit(e) {
       recipientRole: 'store',
       recipientStoreCode: AppState.activeStore.code,
       title: isEditing ? 'Asset Updated by Admin' : 'New Asset Assigned by Admin',
-      message: isEditing 
+      message: isEditing
         ? `Admin updated record details for asset "${assetData.name}"`
         : `Admin assigned new asset "${assetData.name}" to store ${AppState.activeStore.code}`,
       assetId: assetData.id,
@@ -2673,9 +2655,8 @@ async function openHistoryModal(assetId) {
   }
 
   DOM.historyModalAssetName.textContent = asset.name;
-  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-    asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
-  }`;
+  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
+    }`;
   DOM.historyModalAssetStatus.textContent = asset.status;
   DOM.historyModalAssetMeta.textContent = `${asset.serial} • ${asset.category} • ${asset.location || 'No Location'}`;
 
@@ -2794,20 +2775,20 @@ function renderTimelineLogs(assetId) {
     if (log.statusAfter === 'Out of Service') dotClass = 'oos';
 
     const isCompleted = log.statusAfter === 'Good' && log.statusBefore !== 'Good';
-    const isCompletedBadge = isCompleted 
+    const isCompletedBadge = isCompleted
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><i class="fa-solid fa-check text-[9px]"></i> COMPLETED</span>`
       : '';
 
     const isAuthorAdmin = (log.technician || '').toLowerCase().includes('admin');
     const isAuthorStore = (log.technician || '').toLowerCase().includes('store');
 
-    const roleBadge = isAuthorAdmin 
+    const roleBadge = isAuthorAdmin
       ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[9px] font-bold">ADMIN</span>`
-      : isAuthorStore 
-      ? `<span class="px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-[9px] font-bold">STORE</span>`
-      : '';
+      : isAuthorStore
+        ? `<span class="px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-[9px] font-bold">STORE</span>`
+        : '';
 
-    const photoImg = log.imageUrl 
+    const photoImg = log.imageUrl
       ? `<div class="mt-3 relative inline-block group">
           <img src="${log.imageUrl}" alt="Maintenance Photo" onclick="openImageLightbox('${escapeHTML(log.imageUrl)}', 'Service Log Photo — ${escapeHTML(log.date)}')" class="w-36 h-24 object-cover rounded-xl border border-zinc-700 cursor-pointer hover:border-amber-400 hover:scale-[1.02] transition-all shadow-md">
           <div onclick="openImageLightbox('${escapeHTML(log.imageUrl)}', 'Service Log Photo — ${escapeHTML(log.date)}')" class="absolute bottom-1.5 right-1.5 bg-zinc-950/85 hover:bg-emerald-500 text-white hover:text-zinc-950 text-[10px] font-bold px-2 py-0.5 rounded-md cursor-pointer flex items-center gap-1 transition-colors backdrop-blur-sm border border-zinc-700">
@@ -2969,7 +2950,7 @@ function handleNewLogSubmit(e) {
       recipientRole: 'store',
       recipientStoreCode: AppState.activeStore.code,
       title: wasCompletedInForm ? 'Task Marked as Completed' : 'New Admin Comment / Reply',
-      message: wasCompletedInForm 
+      message: wasCompletedInForm
         ? `Admin ${AppState.currentUser.username} marked task on "${asset.name}" as COMPLETED.`
         : `Admin ${AppState.currentUser.username} commented on "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
       assetId: asset.id,
@@ -2994,9 +2975,8 @@ function handleNewLogSubmit(e) {
   renderTimelineLogs(asset.id);
   refreshAppUI();
 
-  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-    asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
-  }`;
+  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
+    }`;
   DOM.historyModalAssetStatus.textContent = asset.status;
 
   // Update History Modal Completion Banner if task was marked complete
@@ -3063,7 +3043,7 @@ function showToast(message, type = 'info') {
 
 function escapeHTML(str) {
   if (!str) return '';
-  return str.replace(/[&<>'"]/g, 
+  return str.replace(/[&<>'"]/g,
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
@@ -3071,9 +3051,9 @@ function escapeHTML(str) {
 function compressAndBase64Image(file, callback, maxWidth = 800, quality = 0.75) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = function (evt) {
     const img = new Image();
-    img.onload = function() {
+    img.onload = function () {
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
@@ -3099,7 +3079,7 @@ function compressAndBase64Image(file, callback, maxWidth = 800, quality = 0.75) 
       const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
       callback(compressedBase64);
     };
-    img.onerror = function() {
+    img.onerror = function () {
       callback(evt.target.result);
     };
     img.src = evt.target.result;
@@ -3248,7 +3228,7 @@ function initEventListeners() {
     newStoreCodeInput.addEventListener('input', () => {
       const codeVal = newStoreCodeInput.value.trim().toUpperCase();
       const originalCode = DOM.editStoreOriginalCode ? DOM.editStoreOriginalCode.value : '';
-      
+
       if (!codeVal) {
         storeCodeAvail.classList.add('hidden');
         newStoreCodeInput.classList.remove('border-rose-500', 'border-emerald-500');
@@ -3380,7 +3360,7 @@ function initEventListeners() {
     if (file) {
       DOM.assetFileLabel.textContent = file.name;
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = function (evt) {
         const rawBase64 = evt.target.result;
         DOM.assetFormImage.value = rawBase64;
         updateAssetFormPreview(rawBase64);
@@ -3426,7 +3406,7 @@ function initEventListeners() {
     if (file) {
       DOM.logFileLabel.textContent = file.name;
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = function (evt) {
         const rawBase64 = evt.target.result;
         DOM.logFormImage.value = rawBase64;
         updateLogFormPreview(rawBase64);
@@ -3532,6 +3512,16 @@ window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 window.markTaskCompleted = markTaskCompleted;
 window.replyToComment = replyToComment;
 window.toggleNotificationDropdown = toggleNotificationDropdown;
+window.toggleNewLogForm = toggleNewLogForm;
+window.handleNotificationClick = handleNotificationClick;
+
+// Bootstrap Application
+document.addEventListener('DOMContentLoaded', () => {
+  initEventListeners();
+  switchLoginTab('store');
+  renderStoreAccountsList();
+  loadUserSession();
+});
 window.toggleNewLogForm = toggleNewLogForm;
 window.handleNotificationClick = handleNotificationClick;
 
