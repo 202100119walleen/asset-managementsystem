@@ -2910,16 +2910,14 @@ function handleNewLogSubmit(e) {
   asset.updatedAt = new Date().toISOString();
 
   // ─── Set isCompleted flag based on conditions ─────────────────────────────
-  const wasCompletedInForm = isCompletionMode || (newStatus === 'Good' && asset.dueDate && imageUrl);
+  const isGoodCondition = newStatus === 'Good';
+  const wasCompletedInForm = isCompletionMode || isGoodCondition;
+
   if (wasCompletedInForm) {
-    // Conditions fully met — officially Completed
+    // Conditions fully met — officially Completed!
     asset.isCompleted = true;
-    asset.completedImageUrl = imageUrl || asset.imageUrl || '';
+    asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
-  } else if (newStatus === 'Good' && !asset.dueDate) {
-    // No due date — Good means operational only
-    asset.isCompleted = false;
-    asset.completedImageUrl = '';
   } else {
     // Any non-Good status resets completion
     asset.isCompleted = false;
