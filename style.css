@@ -1,5 +1,16 @@
 /* Store Asset Management System - Minimalist Enterprise Style Sheet */
 
+/* ─── App Layout: block on mobile, flex-row on desktop ─── */
+.app-layout {
+  display: block;
+}
+@media (min-width: 768px) {
+  .app-layout {
+    display: flex;
+    flex-direction: row;
+  }
+}
+
 /* Minimalist Obsidian background gradient for login screen */
 .bg-radial-gradient {
   background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 100%);

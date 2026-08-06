@@ -895,7 +895,6 @@ function handleLogout() {
   StorageManager.setActiveStoreCode(null);
 
   DOM.appSection.classList.add('hidden');
-  DOM.appSection.classList.remove('flex');
   DOM.loginSection.classList.remove('hidden');
   if (DOM.userMenuDropdown) DOM.userMenuDropdown.classList.add('hidden');
   renderStoreAccountsList();
@@ -912,7 +911,6 @@ function loadUserSession() {
   if (!savedSession) {
     DOM.loginSection.classList.remove('hidden');
     DOM.appSection.classList.add('hidden');
-    DOM.appSection.classList.remove('flex');
     renderStoreAccountsList();
     switchLoginTab('store');
     return;
@@ -965,7 +963,6 @@ function loadUserSession() {
 
   DOM.loginSection.classList.add('hidden');
   DOM.appSection.classList.remove('hidden');
-  DOM.appSection.classList.add('flex');
 
   refreshAppUI();
 }
