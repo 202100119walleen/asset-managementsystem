@@ -2456,13 +2456,21 @@ function markTaskCompleted(assetId) {
     return;
   }
 
-  if (!asset.dueDate) {
-    showToast('A due date must be set by Admin before a task can be marked as completed.', 'error');
+  if (asset.isCompleted && asset.status === 'Good') {
+    showToast('This task is already marked as completed.', 'info');
     return;
   }
 
-  if (asset.isCompleted) {
-    showToast('This task is already marked as completed.', 'info');
+  // If completion form is ALREADY open, clicking Mark Complete will directly submit the form!
+  const isFormOpen = DOM.newLogForm && !DOM.newLogForm.classList.contains('hidden');
+  const isCompletionMode = DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1';
+
+  if (isFormOpen && isCompletionMode) {
+    if (typeof DOM.newLogForm.requestSubmit === 'function') {
+      DOM.newLogForm.requestSubmit();
+    } else {
+      handleNewLogSubmit(new Event('submit'));
+    }
     return;
   }
 
@@ -2477,12 +2485,11 @@ function markTaskCompleted(assetId) {
     if (DOM.logFormNotes && (!DOM.logFormNotes.value || DOM.logFormNotes.value.length < 5)) {
       DOM.logFormNotes.value = 'Task completed and verified. Photo proof of completed work attached below.';
     }
-    // Set default completion date to today or due date (whichever is later)
     const todayStr = new Date().toISOString().split('T')[0];
     const initialDate = asset.dueDate && asset.dueDate > todayStr ? asset.dueDate : todayStr;
     if (DOM.logFormDate) {
       DOM.logFormDate.value = initialDate;
-      if (asset.dueDate) {
+      if (asset.dueDate && AppState.currentUser.role !== 'admin') {
         DOM.logFormDate.min = asset.dueDate;
       }
     }
@@ -3353,11 +3360,14 @@ function initEventListeners() {
     const file = e.target.files[0];
     if (file) {
       DOM.assetFileLabel.textContent = file.name;
-      compressAndBase64Image(file, function(base64Url) {
-        DOM.assetFormImage.value = base64Url;
-        updateAssetFormPreview(base64Url);
-        showToast('Local image selected & encoded.', 'success');
-      });
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const rawBase64 = evt.target.result;
+        DOM.assetFormImage.value = rawBase64;
+        updateAssetFormPreview(rawBase64);
+        showToast('Local image attached ✓', 'success');
+      };
+      reader.readAsDataURL(file);
     }
   });
 
@@ -3396,15 +3406,18 @@ function initEventListeners() {
     const file = e.target.files[0];
     if (file) {
       DOM.logFileLabel.textContent = file.name;
-      compressAndBase64Image(file, function(base64Url) {
-        DOM.logFormImage.value = base64Url;
-        updateLogFormPreview(base64Url);
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const rawBase64 = evt.target.result;
+        DOM.logFormImage.value = rawBase64;
+        updateLogFormPreview(rawBase64);
         if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.remove('hidden');
         if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
         if (DOM.logFormImage) DOM.logFormImage.classList.remove('border-rose-500', 'ring-1', 'ring-rose-500/40');
         updateCompletionChecklist();
-        showToast('Proof photo uploaded & processed.', 'success');
-      });
+        showToast('Proof photo attached ✓', 'success');
+      };
+      reader.readAsDataURL(file);
     }
   });
 
