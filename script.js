@@ -487,12 +487,13 @@ class StorageManager {
   static deleteStore(code) {
     let stores = StorageManager.getStores();
     stores = stores.filter(s => s.code !== code);
-    StorageManager.saveStores(stores);
+    localStorage.setItem('ams_stores', JSON.stringify(stores));
     localStorage.removeItem(`ams_assets_${code}`);
     localStorage.removeItem(`ams_logs_${code}`);
 
     if (supabaseClient) {
       supabaseClient.from('stores').delete().eq('code', code).catch(err => console.log('Supabase store delete note:', err));
+      supabaseClient.from('assets').delete().eq('store_code', code).catch(err => console.log('Supabase assets delete note:', err));
     }
   }
 
@@ -1232,20 +1233,30 @@ function confirmDeleteStore(storeCode) {
     return;
   }
 
-  const stores = StorageManager.getStores();
-  if (stores.length <= 1) {
-    showToast('Cannot delete the last remaining store account.', 'error');
-    return;
-  }
-
   showConfirmModal(
-    `Delete store "${storeCode}"? This will permanently remove all its assets and data and cannot be undone.`,
+    `Delete store "${storeCode}"? This will permanently remove all its assets and data from local storage and the cloud database.`,
     () => {
       StorageManager.deleteStore(storeCode);
+      const remainingStores = StorageManager.getStores();
+      if (remainingStores.length > 0) {
+        if (!AppState.activeStore || AppState.activeStore.code === storeCode) {
+          AppState.activeStore = remainingStores[0];
+          StorageManager.setActiveStoreCode(remainingStores[0].code);
+          AppState.assets = StorageManager.getAssets(remainingStores[0].code);
+          AppState.logs = StorageManager.getLogs(remainingStores[0].code);
+        }
+      } else {
+        AppState.activeStore = null;
+        StorageManager.setActiveStoreCode(null);
+        AppState.assets = [];
+        AppState.logs = [];
+      }
+
       renderStoreAccountsList();
       renderAdminStoreTable();
       renderHeaderStoreSelector();
-      showToast(`Store "${storeCode}" deleted.`, 'info');
+      refreshAppUI();
+      showToast(`Store "${storeCode}" deleted successfully.`, 'info');
     },
     'Delete Store',
     'fa-trash'
