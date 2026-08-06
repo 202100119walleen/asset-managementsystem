@@ -2314,6 +2314,15 @@ function updateCompletionChecklist() {
   const assetId = DOM.logFormAssetId ? DOM.logFormAssetId.value : null;
   const asset = assetId ? AppState.assets.find(a => a.id === assetId) : null;
 
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+
+  if (isUserAdmin) {
+    setCheck(DOM.checklistDate, DOM.checklistDateIcon, true, 'Date Completed', 'Date Completed');
+    setCheck(DOM.checklistName, DOM.checklistNameIcon, true, 'Responsible', 'Responsible');
+    setCheck(DOM.checklistPhoto, DOM.checklistPhotoIcon, true, 'Proof Photo', 'Proof Photo');
+    return;
+  }
+
   const dateVal = DOM.logFormDate ? DOM.logFormDate.value : '';
   const hasDate = Boolean(dateVal);
   const isDateEarlierThanDue = Boolean(hasDate && asset && asset.dueDate && dateVal < asset.dueDate);
@@ -2347,25 +2356,35 @@ function updateCompletionChecklist() {
 function activateCompletionMode() {
   const assetId = DOM.logFormAssetId ? DOM.logFormAssetId.value : null;
   const asset = assetId ? AppState.assets.find(a => a.id === assetId) : null;
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   // Switch form UI into "Task Completion" mode
   if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '1';
   if (DOM.completionModeBanner) DOM.completionModeBanner.classList.remove('hidden');
   if (DOM.logFormDateLabel) {
     const minNotice = asset && asset.dueDate ? ` <span class="text-amber-400 font-normal">(min: ${asset.dueDate})</span>` : '';
-    DOM.logFormDateLabel.innerHTML = `Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>${minNotice}`;
+    DOM.logFormDateLabel.innerHTML = isUserAdmin
+      ? `Date Completed <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>${minNotice}`
+      : `Date Completed <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>${minNotice}`;
   }
   if (DOM.logFormTechnicianLabel) {
-    DOM.logFormTechnicianLabel.innerHTML = 'Responsible <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+    DOM.logFormTechnicianLabel.innerHTML = isUserAdmin
+      ? 'Responsible <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>'
+      : 'Responsible <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
   }
   if (DOM.logFormTechnician) {
-    DOM.logFormTechnician.placeholder = 'e.g. Juan Santos — person responsible for completion';
+    DOM.logFormTechnician.placeholder = isUserAdmin ? 'e.g. Admin (admin1)' : 'e.g. Juan Santos — person responsible for completion';
     DOM.logFormTechnician.classList.add('border-emerald-500/50');
   }
   if (DOM.logFormPhotoLabel) {
-    DOM.logFormPhotoLabel.innerHTML = 'Proof Photo <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
+    DOM.logFormPhotoLabel.innerHTML = isUserAdmin
+      ? 'Proof Photo <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>'
+      : 'Proof Photo <span class="text-rose-400">*</span> <span class="text-emerald-400 font-normal">(required)</span>';
   }
-  if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
+  if (DOM.photoRequiredNotice) {
+    if (isUserAdmin) DOM.photoRequiredNotice.classList.add('hidden');
+    else DOM.photoRequiredNotice.classList.remove('hidden');
+  }
   if (DOM.logFormSubmitLabel) DOM.logFormSubmitLabel.textContent = 'Submit Completion';
   if (DOM.logFormSubmitBtn) {
     DOM.logFormSubmitBtn.className = 'px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5';
@@ -2373,7 +2392,7 @@ function activateCompletionMode() {
   // Highlight the date & image fields & enforce HTML min date attribute
   if (DOM.logFormDate) {
     DOM.logFormDate.classList.add('border-emerald-500/50', 'ring-1', 'ring-emerald-500/30');
-    if (asset && asset.dueDate) {
+    if (asset && asset.dueDate && !isUserAdmin) {
       DOM.logFormDate.min = asset.dueDate;
     }
   }
@@ -2386,20 +2405,27 @@ function activateCompletionMode() {
 }
 
 function deactivateCompletionMode() {
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
   if (DOM.logFormCompletionMode) DOM.logFormCompletionMode.value = '0';
   if (DOM.completionModeBanner) DOM.completionModeBanner.classList.add('hidden');
   if (DOM.logFormDateLabel) {
-    DOM.logFormDateLabel.innerHTML = 'Service Date <span class="text-rose-400">*</span>';
+    DOM.logFormDateLabel.innerHTML = isUserAdmin
+      ? 'Service Date <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>'
+      : 'Service Date';
   }
   if (DOM.logFormTechnicianLabel) {
-    DOM.logFormTechnicianLabel.innerHTML = 'Responsible';
+    DOM.logFormTechnicianLabel.innerHTML = isUserAdmin
+      ? 'Responsible <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>'
+      : 'Responsible';
   }
   if (DOM.logFormTechnician) {
     DOM.logFormTechnician.placeholder = 'e.g. Juan Santos — person responsible';
     DOM.logFormTechnician.classList.remove('border-emerald-500/50', 'border-rose-500', 'ring-1', 'ring-rose-500/40');
   }
   if (DOM.logFormPhotoLabel) {
-    DOM.logFormPhotoLabel.innerHTML = 'Service Photo / Receipt (Upload or Link)';
+    DOM.logFormPhotoLabel.innerHTML = isUserAdmin
+      ? 'Service Photo / Receipt <span class="text-zinc-400 font-normal text-[11px]">(optional for Admin)</span>'
+      : 'Service Photo / Receipt (Upload or Link)';
   }
   if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.add('hidden');
   if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.add('hidden');
@@ -2786,56 +2812,63 @@ function handleNewLogSubmit(e) {
     setTimeout(() => el.classList.remove('field-shake'), 500);
   }
 
-  // ─── UPFRONT VALIDATION (before any data changes) ────────────────────────
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
-  // 1a. Date Completed is required in completion mode
-  if (isCompletionMode && !serviceDate) {
-    showToast('⚠️ Cannot complete task: Please set the Date Completed.', 'error');
-    shakeField(DOM.logFormDate);
-    return;
+  // ─── UPFRONT VALIDATION (Mandatory ONLY for Store Accounts; Optional for Admin) ───
+  if (!isUserAdmin) {
+    // 1a. Date Completed is required for Store in completion mode
+    if (isCompletionMode && !serviceDate) {
+      showToast('⚠️ Cannot complete task: Please set the Date Completed.', 'error');
+      shakeField(DOM.logFormDate);
+      return;
+    }
+
+    // 1b. Date Completed cannot be earlier than scheduled due date
+    if (asset.dueDate && serviceDate && serviceDate < asset.dueDate) {
+      showToast(`⚠️ Invalid Completion Date: Cannot set date to ${serviceDate}. Completion date cannot be earlier than the scheduled due date (${asset.dueDate}).`, 'error');
+      shakeField(DOM.logFormDate);
+      return;
+    }
+
+    // 2. Proof photo is required for Store in completion mode
+    if (isCompletionMode && !imageUrl) {
+      showToast('⚠️ Cannot complete task: A proof photo is required. Please upload or link a photo.', 'error');
+      if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
+      if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
+      shakeField(DOM.logFormImage);
+      return;
+    }
+
+    // 3. Name is required for Store in completion mode
+    if (isCompletionMode && !DOM.logFormTechnician.value.trim()) {
+      showToast('⚠️ Cannot complete task: Please enter the responsible person\'s name.', 'error');
+      if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.remove('hidden');
+      shakeField(DOM.logFormTechnician);
+      return;
+    }
+
+    // 4. Service Notes & Comments are required for Store
+    if (!DOM.logFormNotes || !DOM.logFormNotes.value.trim()) {
+      showToast('⚠️ Cannot complete task: Please enter Service Notes / Comments describing the work.', 'error');
+      shakeField(DOM.logFormNotes);
+      return;
+    }
   }
 
-  // 1b. Date Completed cannot be earlier than scheduled due date
-  if (asset.dueDate && serviceDate && serviceDate < asset.dueDate) {
-    showToast(`⚠️ Invalid Completion Date: Cannot set date to ${serviceDate}. Completion date cannot be earlier than the scheduled due date (${asset.dueDate}).`, 'error');
-    shakeField(DOM.logFormDate);
-    return;
-  }
-
-  // 2. Proof photo is required in completion mode (or when marking Good with due date)
-  if ((isCompletionMode || (newStatus === 'Good' && asset.dueDate)) && !imageUrl) {
-    showToast('⚠️ Cannot complete task: A proof photo is required. Please upload or link a photo.', 'error');
-    if (DOM.photoRequiredNotice) DOM.photoRequiredNotice.classList.remove('hidden');
-    if (DOM.proofUploadedTick) DOM.proofUploadedTick.classList.add('hidden');
-    shakeField(DOM.logFormImage);
-    return;
-  }
-
-  // 3. Name is required in completion mode
-  if (isCompletionMode && !DOM.logFormTechnician.value.trim()) {
-    showToast('⚠️ Cannot complete task: Please enter the responsible person\'s name.', 'error');
-    if (DOM.nameRequiredNotice) DOM.nameRequiredNotice.classList.remove('hidden');
-    shakeField(DOM.logFormTechnician);
-    return;
-  }
-
-  // 4. Service Notes & Comments are required
-  if (!DOM.logFormNotes || !DOM.logFormNotes.value.trim()) {
-    showToast('⚠️ Cannot complete task: Please enter Service Notes / Comments describing the work.', 'error');
-    shakeField(DOM.logFormNotes);
-    return;
-  }
+  const finalDate = serviceDate || new Date().toISOString().split('T')[0];
+  const finalTech = DOM.logFormTechnician.value.trim() || (isUserAdmin ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`);
+  const finalNotes = (DOM.logFormNotes && DOM.logFormNotes.value.trim()) ? DOM.logFormNotes.value.trim() : (isUserAdmin ? `Status updated to ${newStatus} by Admin.` : 'Task completed and verified.');
 
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
     assetId: asset.id,
-    date: serviceDate,
-    technician: DOM.logFormTechnician.value.trim() || (AppState.currentUser.role === 'admin' ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`),
+    date: finalDate,
+    technician: finalTech,
     statusBefore: asset.status,
     statusAfter: newStatus,
     cost: parseFloat(DOM.logFormCost.value) || 0,
     imageUrl: imageUrl,
-    notes: DOM.logFormNotes.value.trim()
+    notes: finalNotes
   };
 
   AppState.logs.unshift(logEntry);
