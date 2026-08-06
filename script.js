@@ -2819,6 +2819,13 @@ function handleNewLogSubmit(e) {
     return;
   }
 
+  // 4. Service Notes & Comments are required
+  if (!DOM.logFormNotes || !DOM.logFormNotes.value.trim()) {
+    showToast('⚠️ Cannot complete task: Please enter Service Notes / Comments describing the work.', 'error');
+    shakeField(DOM.logFormNotes);
+    return;
+  }
+
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
     assetId: asset.id,
@@ -2839,10 +2846,12 @@ function handleNewLogSubmit(e) {
   asset.updatedAt = new Date().toISOString();
 
   // ─── Set isCompleted flag based on conditions ─────────────────────────────
-  if (newStatus === 'Good' && asset.dueDate && imageUrl) {
+  const wasCompletedInForm = isCompletionMode || (newStatus === 'Good' && asset.dueDate && imageUrl);
+  if (wasCompletedInForm) {
     // Conditions fully met — officially Completed
     asset.isCompleted = true;
-    asset.completedImageUrl = imageUrl;
+    asset.completedImageUrl = imageUrl || asset.imageUrl || '';
+    asset.status = 'Good';
   } else if (newStatus === 'Good' && !asset.dueDate) {
     // No due date — Good means operational only
     asset.isCompleted = false;
@@ -2860,21 +2869,25 @@ function handleNewLogSubmit(e) {
     StorageManager.addNotification({
       recipientRole: 'store',
       recipientStoreCode: AppState.activeStore.code,
-      title: 'New Admin Comment / Reply',
-      message: `Admin ${AppState.currentUser.username} commented on "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
+      title: wasCompletedInForm ? 'Task Marked as Completed' : 'New Admin Comment / Reply',
+      message: wasCompletedInForm 
+        ? `Admin ${AppState.currentUser.username} marked task on "${asset.name}" as COMPLETED.`
+        : `Admin ${AppState.currentUser.username} commented on "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
       assetId: asset.id,
       storeCode: AppState.activeStore.code,
-      type: 'reply'
+      type: wasCompletedInForm ? 'status' : 'reply'
     });
   } else {
     StorageManager.addNotification({
       recipientRole: 'admin',
       recipientStoreCode: null,
-      title: 'New Service Log Submitted',
-      message: `Store ${AppState.activeStore.code} submitted a log for "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
+      title: wasCompletedInForm ? 'Store Completed Task' : 'New Service Log Submitted',
+      message: wasCompletedInForm
+        ? `Store ${AppState.activeStore.code} completed task on "${asset.name}".`
+        : `Store ${AppState.activeStore.code} submitted a log for "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
       assetId: asset.id,
       storeCode: AppState.activeStore.code,
-      type: 'log'
+      type: wasCompletedInForm ? 'status' : 'log'
     });
   }
 
@@ -2887,7 +2900,29 @@ function handleNewLogSubmit(e) {
   }`;
   DOM.historyModalAssetStatus.textContent = asset.status;
 
-  showToast('Comment / Service Log entry recorded & synced!', 'success');
+  // Update History Modal Completion Banner if task was marked complete
+  if (wasCompletedInForm && DOM.markCompletedBanner) {
+    DOM.markCompletedBanner.classList.remove('hidden');
+    DOM.markCompletedBanner.innerHTML = `
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <div class="flex-1">
+          <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
+          <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work on file.</p>
+        </div>
+        ${asset.completedImageUrl ? `<a href="${asset.completedImageUrl}" target="_blank" class="flex-shrink-0">
+          <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 hover:border-emerald-400 transition-colors cursor-pointer">
+        </a>` : ''}
+      </div>
+    `;
+    deactivateCompletionMode();
+  }
+
+  if (wasCompletedInForm) {
+    showToast(`✅ Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
+  } else {
+    showToast('Comment / Service Log entry recorded & synced!', 'success');
+  }
 }
 
 
