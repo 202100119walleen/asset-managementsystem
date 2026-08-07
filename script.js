@@ -426,9 +426,11 @@ class StorageManager {
         location: a.location || '',
         last_maintenance: a.lastMaintenance || '',
         due_date: a.dueDate || null,
+        frequency: a.frequency || 'None',
         value: a.value || 0,
         image_url: a.imageUrl || '',
         is_completed: a.isCompleted ? true : false,
+        completed_date: a.completedDate || null,
         completed_image_url: a.completedImageUrl || '',
         updated_at: a.updatedAt || new Date().toISOString()
       }));
@@ -3117,10 +3119,7 @@ function handleNewLogSubmit(e) {
   DOM.newLogForm.classList.add('hidden');
   deactivateCompletionMode();
   refreshAppUI();
-
-  if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden')) {
-    openHistoryModal(asset.id);
-  }
+  renderTimelineLogs(asset.id);
 
   if (isCompletionSubmitted) {
     showToast(`✅ Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
