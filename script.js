@@ -1906,25 +1906,29 @@ function checkAndGenerateDueNotifications() {
   const existingNotifs = StorageManager.getNotifications();
 
   AppState.assets.forEach(asset => {
-    if (!asset.dueDate || asset.isCompleted) return;
+    if (!asset.dueDate || asset.isCompleted || !asset.frequency || asset.frequency === 'None') return;
 
     const dueParts = asset.dueDate.split('-');
     const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
     due.setHours(0, 0, 0, 0);
 
     const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    const isQuarterlyOrHigher = asset.frequency === 'Quarterly' || asset.frequency === 'Bi-Annually' || asset.frequency === 'Annually' || asset.frequency === 'Yearly';
 
-    if (isQuarterlyOrHigher && diffDays <= 30 && diffDays > 0) {
+    // Send 1-month (30-day) advance reminder to the employee/store for ALL frequency types
+    if (diffDays <= 30 && diffDays > 0) {
       const notifTag = `1MONTH_REMINDER_${asset.id}_${asset.dueDate}`;
-      const alreadyNotified = existingNotifs.some(n => n.notifTag === notifTag || (n.assetId === asset.id && n.title.includes('1-Month Maintenance Reminder')));
+      const alreadyNotified = existingNotifs.some(n =>
+        n.notifTag === notifTag ||
+        (n.assetId === asset.id && n.title && n.title.includes('Maintenance Reminder') && n.message && n.message.includes(asset.dueDate))
+      );
 
       if (!alreadyNotified) {
+        const cycleLabel = asset.frequency || 'Scheduled';
         StorageManager.addNotification({
           recipientRole: 'store',
           recipientStoreCode: AppState.activeStore ? AppState.activeStore.code : null,
-          title: '⏰ 1-Month Maintenance Reminder',
-          message: `Upcoming 3-month scheduled maintenance on "${asset.name}" is due in ${diffDays} days (${asset.dueDate}). Please prepare for service.`,
+          title: '⏰ Upcoming Maintenance Reminder',
+          message: `Reminder: "${asset.name}" has a ${cycleLabel} maintenance task due in ${diffDays} day${diffDays === 1 ? '' : 's'} on ${asset.dueDate}. Please prepare for service.`,
           assetId: asset.id,
           storeCode: AppState.activeStore ? AppState.activeStore.code : null,
           type: 'info',
