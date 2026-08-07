@@ -1686,8 +1686,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function getTaskDueStatus(asset) {
   // ─── RULE 1: Completed overrides EVERYTHING ───────────────────────────────
-  // A task is Completed ONLY when isCompleted flag is explicitly set to true.
-  if (asset.isCompleted) {
+  // A task is Completed when isCompleted flag is true OR when lastMaintenance is on or after scheduled dueDate
+  let isCompletedByDate = false;
+  if (asset.lastMaintenance && asset.dueDate && (!asset.frequency || asset.frequency === 'None')) {
+    const lastMaintDate = new Date(asset.lastMaintenance);
+    const scheduledDueDate = new Date(asset.dueDate);
+    lastMaintDate.setHours(0, 0, 0, 0);
+    scheduledDueDate.setHours(0, 0, 0, 0);
+    if (!isNaN(lastMaintDate.getTime()) && !isNaN(scheduledDueDate.getTime())) {
+      isCompletedByDate = lastMaintDate >= scheduledDueDate;
+    }
+  }
+
+  if (asset.isCompleted || isCompletedByDate) {
     return {
       statusKey: 'Completed',
       label: 'Completed',
@@ -2992,11 +3003,15 @@ function handleNewLogSubmit(e) {
   StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
   asset.status = newStatus;
-  asset.lastMaintenance = serviceDate;
+  asset.lastMaintenance = serviceDate || new Date().toISOString().split('T')[0];
   asset.updatedAt = new Date().toISOString();
 
+  const isDateOnOrAfterDue = Boolean(
+    serviceDate && asset.dueDate && (new Date(serviceDate) >= new Date(asset.dueDate))
+  );
+
   // ─── Set isCompleted flag based on conditions ─────────────────────────────
-  if (isCompletionMode) {
+  if (isCompletionMode || isDateOnOrAfterDue) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
@@ -3004,7 +3019,10 @@ function handleNewLogSubmit(e) {
     // Auto-calculate Next Due Date if Maintenance Frequency is assigned
     if (asset.frequency && asset.frequency !== 'None') {
       const nextDue = calculateNextDueDate(finalDate, asset.frequency);
-      if (nextDue) asset.dueDate = nextDue;
+      if (nextDue) {
+        asset.dueDate = nextDue;
+        asset.isCompleted = false;
+      }
     }
   } else {
     asset.status = newStatus;
