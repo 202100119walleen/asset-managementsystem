@@ -264,6 +264,7 @@ class StorageManager {
   }
 
   static saveStores(stores) {
+    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     localStorage.setItem('ams_stores', JSON.stringify(stores));
     if (supabaseClient && Array.isArray(stores) && stores.length > 0) {
       const storesToUpsert = stores.map(s => ({
@@ -409,6 +410,7 @@ class StorageManager {
 
   static saveAssets(storeCode, assets, pushToSupabase = true) {
     if (!storeCode) return;
+    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
     } catch (e) {
@@ -450,6 +452,7 @@ class StorageManager {
 
   static saveLogs(storeCode, logs, pushToSupabase = true) {
     if (!storeCode) return;
+    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
     } catch (e) {
@@ -498,6 +501,7 @@ class StorageManager {
   }
 
   static saveNotifications(notifications, pushToSupabase = true) {
+    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem('ams_notifications', JSON.stringify(notifications));
     } catch (e) {
@@ -577,6 +581,7 @@ const DOM = {
   appSection: document.getElementById('appSection'),
 
   // Auth Form & Tabs
+  guestLoginBtn: document.getElementById('guestLoginBtn'),
   tabStoreLogin: document.getElementById('tabStoreLogin'),
   tabAdminLogin: document.getElementById('tabAdminLogin'),
   loginForm: document.getElementById('loginForm'),
@@ -850,6 +855,27 @@ function handleLogin(inputCodeOrUsername, password) {
     : 'Invalid Store Code or Password.';
 }
 
+function handleGuestLogin() {
+  const stores = StorageManager.getStores();
+  const activeObj = stores.length > 0 ? stores[0] : { code: 'STORE-01', name: 'Downtown Branch Store' };
+
+  AppState.currentUser = {
+    role: 'guest',
+    username: 'GuestTester',
+    name: 'Guest User (Sandbox)',
+    storeCode: activeObj.code
+  };
+  AppState.activeStore = activeObj;
+  AppState.assets = JSON.parse(JSON.stringify(StorageManager.getAssets(activeObj.code)));
+  AppState.logs = JSON.parse(JSON.stringify(StorageManager.getLogs(activeObj.code)));
+
+  DOM.loginSection.classList.add('hidden');
+  DOM.appSection.classList.remove('hidden');
+
+  loadUserSession();
+  showToast('🚀 Welcome to Guest Sandbox Mode! Test all features — data changes will NOT be saved to the database.', 'info');
+}
+
 function handleLogout() {
   AppState.currentUser = null;
   AppState.activeStore = null;
@@ -884,7 +910,21 @@ function loadUserSession() {
   const sidebarAdminBlock = document.getElementById('sidebarAdminBlock');
 
   // Configure UI based on Role
-  if (savedSession.role === 'admin') {
+  if (savedSession.role === 'guest') {
+    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono';
+    DOM.roleDisplayName.textContent = 'GUEST • Sandbox Mode';
+    if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.remove('hidden');
+    if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.remove('hidden');
+    if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.classList.remove('hidden');
+    if (DOM.emptyAddBtn) DOM.emptyAddBtn.classList.remove('hidden');
+    if (sidebarAdminBlock) sidebarAdminBlock.classList.remove('hidden');
+    if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = 'Role: Guest (Unsaved Sandbox)';
+    if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = 'Account: Guest Tester';
+
+    if (!AppState.activeStore && stores.length > 0) {
+      AppState.activeStore = stores[0];
+    }
+  } else if (savedSession.role === 'admin') {
     // Admin Role Configuration
     DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono';
     DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
@@ -939,7 +979,7 @@ function loadUserSession() {
 
 function renderHeaderStoreSelector() {
   const stores = StorageManager.getStores();
-  const isAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+  const isAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
 
   if (DOM.activeStoreSelect) {
     if (isAdmin) {
@@ -1648,6 +1688,7 @@ function initSupabaseRealtime() {
 }
 
 // Global functions exposed for inline onclick handlers
+window.handleGuestLogin = handleGuestLogin;
 window.openHistoryModal = openHistoryModal;
 window.openEditAssetModal = openEditAssetModal;
 window.confirmDeleteAsset = confirmDeleteAsset;
@@ -1932,7 +1973,7 @@ function renderAssetDirectory() {
 }
 
 function renderTableView(assets) {
-  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+  const isUserAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
 
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
@@ -1999,7 +2040,7 @@ function renderTableView(assets) {
 }
 
 function renderCardView(assets) {
-  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+  const isUserAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
 
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
@@ -2510,7 +2551,7 @@ function confirmDeleteAsset(assetId) {
 
 function canUserAddComment(storeCode) {
   if (!AppState.currentUser) return false;
-  if (AppState.currentUser.role === 'admin') return true;
+  if (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest') return true;
   if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
   return false;
 }
@@ -3239,7 +3280,8 @@ function closeConfirmModal() {
 // ==========================================
 
 function initEventListeners() {
-  // Login Tab Switching
+  // Guest Login & Tab Switching
+  if (DOM.guestLoginBtn) DOM.guestLoginBtn.addEventListener('click', handleGuestLogin);
   DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
   DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
 
