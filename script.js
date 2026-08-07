@@ -2697,6 +2697,8 @@ function updateAssetFormPreview(url) {
       DOM.assetFormPreviewBox.innerHTML = '';
     }
   }
+}
+
 function configureLogFormDateBounds(asset) {
   if (!DOM.logFormDate || !asset) return;
 
