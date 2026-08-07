@@ -1686,19 +1686,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function getTaskDueStatus(asset) {
   // ─── RULE 1: Completed overrides EVERYTHING ───────────────────────────────
-  // A task is Completed when isCompleted flag is true OR when lastMaintenance is on or after scheduled dueDate
-  let isCompletedByDate = false;
-  if (asset.lastMaintenance && asset.dueDate && (!asset.frequency || asset.frequency === 'None')) {
-    const lastMaintDate = new Date(asset.lastMaintenance);
-    const scheduledDueDate = new Date(asset.dueDate);
-    lastMaintDate.setHours(0, 0, 0, 0);
-    scheduledDueDate.setHours(0, 0, 0, 0);
-    if (!isNaN(lastMaintDate.getTime()) && !isNaN(scheduledDueDate.getTime())) {
-      isCompletedByDate = lastMaintDate >= scheduledDueDate;
-    }
-  }
-
-  if (asset.isCompleted || isCompletedByDate) {
+  // A task is Completed ONLY when isCompleted flag is explicitly set to true on the asset.
+  if (asset.isCompleted) {
     return {
       statusKey: 'Completed',
       label: 'Completed',
@@ -3006,12 +2995,8 @@ function handleNewLogSubmit(e) {
   asset.lastMaintenance = serviceDate || new Date().toISOString().split('T')[0];
   asset.updatedAt = new Date().toISOString();
 
-  const isDateOnOrAfterDue = Boolean(
-    serviceDate && asset.dueDate && (new Date(serviceDate) >= new Date(asset.dueDate))
-  );
-
-  // ─── Set isCompleted flag based on conditions ─────────────────────────────
-  if (isCompletionMode || isDateOnOrAfterDue) {
+  // ─── Set isCompleted flag ONLY on the specifically selected asset ────────
+  if (isCompletionMode) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
