@@ -2152,13 +2152,7 @@ function calculateNextDueDate(baseDateStr, frequency) {
 }
 
 function handleFrequencyChange() {
-  if (!DOM.assetFormFrequency || !DOM.assetFormDueDate) return;
-  const freq = DOM.assetFormFrequency.value;
-  if (freq && freq !== 'None') {
-    const base = DOM.assetFormLastMaint && DOM.assetFormLastMaint.value ? DOM.assetFormLastMaint.value : new Date().toISOString().split('T')[0];
-    const autoDue = calculateNextDueDate(base, freq);
-    if (autoDue) DOM.assetFormDueDate.value = autoDue;
-  }
+  // Frequency changed by user; due date remains manually managed by Admin
 }
 
 function handleCategorySelectChange() {
@@ -2289,10 +2283,6 @@ function handleAssetFormSubmit(e) {
   const finalCategory = (selectedCatOption === 'Other' && customCatText) ? customCatText : selectedCatOption;
 
   const frequencyVal = DOM.assetFormFrequency ? DOM.assetFormFrequency.value : 'None';
-  let finalAssignedDueDate = assignedDueDate;
-  if (!finalAssignedDueDate && frequencyVal && frequencyVal !== 'None') {
-    finalAssignedDueDate = calculateNextDueDate(DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0], frequencyVal);
-  }
 
   const formCompletionVal = DOM.assetFormCompletion ? (DOM.assetFormCompletion.value === 'true') : (existingAsset ? Boolean(existingAsset.isCompleted) : false);
   const finalIsCompleted = (selectedStatus === 'Maintenance Needed' || selectedStatus === 'Out of Service') ? false : formCompletionVal;
@@ -2306,7 +2296,7 @@ function handleAssetFormSubmit(e) {
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
     lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
     frequency: frequencyVal,
-    dueDate: finalAssignedDueDate,
+    dueDate: assignedDueDate,
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
     isCompleted: finalIsCompleted,
@@ -3053,15 +3043,6 @@ function handleNewLogSubmit(e) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
-
-    // Auto-calculate Next Due Date if Maintenance Frequency is assigned
-    if (asset.frequency && asset.frequency !== 'None') {
-      const nextDue = calculateNextDueDate(finalDate, asset.frequency);
-      if (nextDue) {
-        asset.dueDate = nextDue;
-        asset.isCompleted = false;
-      }
-    }
   } else {
     asset.status = newStatus;
     if (newStatus === 'Maintenance Needed' || newStatus === 'Out of Service') {
