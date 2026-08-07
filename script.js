@@ -2038,6 +2038,12 @@ function renderTableView(assets) {
 
     const dueDateDisplay = asset.dueDate ? `<span class="text-amber-400/90 font-medium">${asset.dueDate}</span>` : '<span class="text-zinc-600">None</span>';
 
+    const frequencyBadge = (!isUserAdmin && asset.frequency && asset.frequency !== 'None')
+      ? `<span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          <i class="fa-solid fa-rotate text-[8px]"></i> ${escapeHTML(asset.frequency)}
+        </span>`
+      : '';
+
     return `
       <tr class="border-b border-zinc-800/80">
         <td class="py-3.5 px-4">
@@ -2046,6 +2052,7 @@ function renderTableView(assets) {
             <div>
               <p class="font-bold text-white leading-snug text-sm">${escapeHTML(asset.name)}</p>
               <p class="text-xs text-zinc-400 font-mono">${escapeHTML(asset.id)}</p>
+              ${frequencyBadge}
             </div>
           </div>
         </td>
@@ -2103,6 +2110,12 @@ function renderCardView(assets) {
       </button>
     ` : '';
 
+    const frequencyBadgeCard = (!isUserAdmin && asset.frequency && asset.frequency !== 'None')
+      ? `<span class="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          <i class="fa-solid fa-rotate text-[8px]"></i> ${escapeHTML(asset.frequency)}
+        </span>`
+      : '';
+
     return `
       <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col hover:border-zinc-700 transition-all">
         <div class="relative">
@@ -2125,6 +2138,7 @@ function renderCardView(assets) {
             <p class="text-xs text-zinc-400 mt-1">
               <i class="fa-solid fa-location-dot text-[10px] text-zinc-500 mr-1"></i> ${escapeHTML(asset.location || 'Unassigned')}
             </p>
+            ${frequencyBadgeCard}
           </div>
 
           <div class="pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
