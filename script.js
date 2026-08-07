@@ -666,6 +666,7 @@ const DOM = {
   assetFormCategory: document.getElementById('assetFormCategory'),
   assetFormSerial: document.getElementById('assetFormSerial'),
   assetFormStatus: document.getElementById('assetFormStatus'),
+  assetFormCompletion: document.getElementById('assetFormCompletion'),
   assetFormLocation: document.getElementById('assetFormLocation'),
   assetFormLastMaint: document.getElementById('assetFormLastMaint'),
   assetFormDueDate: document.getElementById('assetFormDueDate'),
@@ -1654,6 +1655,7 @@ window.openEditStoreModal = openEditStoreModal;
 window.confirmDeleteStore = confirmDeleteStore;
 window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 window.markTaskCompleted = markTaskCompleted;
+window.markTaskIncomplete = markTaskIncomplete;
 window.replyToComment = replyToComment;
 window.handleNotificationClick = handleNotificationClick;
 
@@ -2087,6 +2089,7 @@ function openAddAssetModal() {
   DOM.assetModalTitle.textContent = 'Add New Asset';
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = '';
+  if (DOM.assetFormCompletion) DOM.assetFormCompletion.value = 'false';
   updateAssetFormPreview('');
 
   DOM.assetModal.classList.remove('hidden');
@@ -2110,6 +2113,7 @@ function openEditAssetModal(assetId) {
   DOM.assetFormLocation.value = asset.location || '';
   DOM.assetFormLastMaint.value = asset.lastMaintenance || '';
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = asset.dueDate || '';
+  if (DOM.assetFormCompletion) DOM.assetFormCompletion.value = asset.isCompleted ? 'true' : 'false';
   DOM.assetFormValue.value = asset.value || '';
   DOM.assetFormImage.value = asset.imageUrl || '';
   DOM.assetFormFileInput.value = '';
@@ -2162,6 +2166,9 @@ function handleAssetFormSubmit(e) {
   // When editing, find the existing asset record to preserve completion fields
   const existingAsset = isEditing ? AppState.assets.find(a => a.id === id) : null;
 
+  const formCompletionVal = DOM.assetFormCompletion ? (DOM.assetFormCompletion.value === 'true') : (existingAsset ? Boolean(existingAsset.isCompleted) : false);
+  const finalIsCompleted = (selectedStatus === 'Maintenance Needed' || selectedStatus === 'Out of Service') ? false : formCompletionVal;
+
   const assetData = {
     id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     name: DOM.assetFormName.value.trim(),
@@ -2173,9 +2180,8 @@ function handleAssetFormSubmit(e) {
     dueDate: assignedDueDate,
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
-    // Preserve completion state so editing a completed asset doesn't wipe the flag
-    isCompleted: existingAsset ? (existingAsset.isCompleted || false) : false,
-    completedImageUrl: existingAsset ? (existingAsset.completedImageUrl || '') : '',
+    isCompleted: finalIsCompleted,
+    completedImageUrl: finalIsCompleted ? (existingAsset ? (existingAsset.completedImageUrl || existingAsset.imageUrl || '') : '') : '',
     updatedAt: new Date().toISOString()
   };
 
@@ -2413,6 +2419,59 @@ function markTaskCompleted(assetId) {
   }, 300);
 }
 
+function markTaskIncomplete(assetId) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Admin accounts can mark tasks as incomplete.', 'error');
+    return;
+  }
+
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  asset.isCompleted = false;
+  asset.completedImageUrl = '';
+  asset.updatedAt = new Date().toISOString();
+
+  StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+
+  if (supabaseClient) {
+    supabaseClient.from('assets').upsert([{
+      id: asset.id,
+      store_code: AppState.activeStore.code,
+      name: asset.name,
+      category: asset.category,
+      serial: asset.serial,
+      status: asset.status,
+      location: asset.location || '',
+      last_maintenance: asset.lastMaintenance || '',
+      due_date: asset.dueDate || null,
+      value: asset.value || 0,
+      image_url: asset.imageUrl || '',
+      is_completed: false,
+      completed_image_url: '',
+      updated_at: asset.updatedAt
+    }]).catch(err => console.log('Asset completion reset sync note:', err));
+  }
+
+  StorageManager.addNotification({
+    recipientRole: 'store',
+    recipientStoreCode: AppState.activeStore.code,
+    title: 'Task Marked as Incomplete',
+    message: `Admin ${AppState.currentUser.username} updated status of "${asset.name}" to NOT COMPLETED / Pending.`,
+    assetId: asset.id,
+    storeCode: AppState.activeStore.code,
+    type: 'status'
+  });
+
+  refreshAppUI();
+
+  if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden')) {
+    openHistoryModal(asset.id);
+  }
+
+  showToast(`Task for "${asset.name}" marked as NOT COMPLETED.`, 'info');
+}
+
 function confirmDeleteAsset(assetId) {
   if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
     showToast('Unauthorized: Only Administrators can delete assets.', 'error');
@@ -2583,7 +2642,8 @@ async function openHistoryModal(assetId) {
           </button>
         </div>
       `;
-    } else if (dueStatusModal.statusKey === 'Completed' && asset.completedImageUrl) {
+    } else if (dueStatusModal.statusKey === 'Completed') {
+      const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
       DOM.markCompletedBanner.classList.remove('hidden');
       DOM.markCompletedBanner.innerHTML = `
         <div class="flex items-center gap-3">
@@ -2592,12 +2652,19 @@ async function openHistoryModal(assetId) {
             <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
             <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work attached below (Click to view &amp; download).</p>
           </div>
-          <div onclick="openImageLightbox('${escapeHTML(asset.completedImageUrl)}', 'Completion Proof Photo')" class="flex-shrink-0 cursor-pointer group relative" title="Click to view & download">
-            <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 group-hover:border-emerald-400 transition-colors">
-            <div class="absolute inset-0 bg-zinc-950/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <i class="fa-solid fa-download text-white text-xs"></i>
+          ${isUserAdmin ? `
+            <button onclick="markTaskIncomplete('${asset.id}')" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5" title="Mark Task as Incomplete / Re-open">
+              <i class="fa-solid fa-rotate-left text-[10px]"></i> Mark as Incomplete
+            </button>
+          ` : ''}
+          ${asset.completedImageUrl ? `
+            <div onclick="openImageLightbox('${escapeHTML(asset.completedImageUrl)}', 'Completion Proof Photo')" class="flex-shrink-0 cursor-pointer group relative" title="Click to view & download">
+              <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 group-hover:border-emerald-400 transition-colors">
+              <div class="absolute inset-0 bg-zinc-950/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fa-solid fa-download text-white text-xs"></i>
+              </div>
             </div>
-          </div>
+          ` : ''}
         </div>
       `;
     } else if (dueStatusModal.statusKey !== 'Completed' && !asset.dueDate) {
