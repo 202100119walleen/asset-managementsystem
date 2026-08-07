@@ -99,13 +99,6 @@
         </button>
       </form>
 
-      <!-- Minimalist Guest Login Button -->
-      <button id="guestLoginBtn" type="button"
-        class="w-full py-2.5 px-4 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-xs">
-        <i class="fa-solid fa-user-astronaut text-sm"></i>
-        <span>Try System as Guest (Sandbox Demo)</span>
-      </button>
-
       <!-- Account Selection Sections (Toggled per Tab) -->
       <div class="pt-4 border-t border-zinc-800/80 space-y-3">
         <!-- Admin Accounts Selection (Shown ONLY when Admin Portal is active) -->
@@ -786,6 +779,8 @@
               <option value="Vehicles">Vehicles</option>
               <option value="Other">Other</option>
             </select>
+            <input type="text" id="assetFormCustomCategory" placeholder="Enter custom category name..."
+              class="hidden mt-2 w-full px-3.5 py-2 bg-zinc-950 border border-amber-500/40 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500">
           </div>
 
           <div>

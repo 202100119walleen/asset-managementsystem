@@ -107,8 +107,8 @@ class StorageManager {
 
       // Permanently enforce deletion of deleted stores in Supabase cloud database
       if (deletedCodes.length > 0) {
-        supabaseClient.from('stores').delete().in('code', deletedCodes).catch(() => {});
-        supabaseClient.from('assets').delete().in('store_code', deletedCodes).catch(() => {});
+        supabaseClient.from('stores').delete().in('code', deletedCodes).catch(() => { });
+        supabaseClient.from('assets').delete().in('store_code', deletedCodes).catch(() => { });
       }
 
       // 1. Sync Stores from Supabase (Filter out any deleted store codes)
@@ -264,7 +264,6 @@ class StorageManager {
   }
 
   static saveStores(stores) {
-    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     localStorage.setItem('ams_stores', JSON.stringify(stores));
     if (supabaseClient && Array.isArray(stores) && stores.length > 0) {
       const storesToUpsert = stores.map(s => ({
@@ -410,7 +409,6 @@ class StorageManager {
 
   static saveAssets(storeCode, assets, pushToSupabase = true) {
     if (!storeCode) return;
-    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem(`ams_assets_${storeCode}`, JSON.stringify(assets));
     } catch (e) {
@@ -452,7 +450,6 @@ class StorageManager {
 
   static saveLogs(storeCode, logs, pushToSupabase = true) {
     if (!storeCode) return;
-    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem(`ams_logs_${storeCode}`, JSON.stringify(logs));
     } catch (e) {
@@ -501,7 +498,6 @@ class StorageManager {
   }
 
   static saveNotifications(notifications, pushToSupabase = true) {
-    if (AppState.currentUser && AppState.currentUser.role === 'guest') return;
     try {
       localStorage.setItem('ams_notifications', JSON.stringify(notifications));
     } catch (e) {
@@ -581,7 +577,6 @@ const DOM = {
   appSection: document.getElementById('appSection'),
 
   // Auth Form & Tabs
-  guestLoginBtn: document.getElementById('guestLoginBtn'),
   tabStoreLogin: document.getElementById('tabStoreLogin'),
   tabAdminLogin: document.getElementById('tabAdminLogin'),
   loginForm: document.getElementById('loginForm'),
@@ -669,6 +664,7 @@ const DOM = {
   assetFormId: document.getElementById('assetFormId'),
   assetFormName: document.getElementById('assetFormName'),
   assetFormCategory: document.getElementById('assetFormCategory'),
+  assetFormCustomCategory: document.getElementById('assetFormCustomCategory'),
   assetFormSerial: document.getElementById('assetFormSerial'),
   assetFormStatus: document.getElementById('assetFormStatus'),
   assetFormCompletion: document.getElementById('assetFormCompletion'),
@@ -855,27 +851,6 @@ function handleLogin(inputCodeOrUsername, password) {
     : 'Invalid Store Code or Password.';
 }
 
-function handleGuestLogin() {
-  const stores = StorageManager.getStores();
-  const activeObj = stores.length > 0 ? stores[0] : { code: 'STORE-01', name: 'Downtown Branch Store' };
-
-  AppState.currentUser = {
-    role: 'guest',
-    username: 'GuestTester',
-    name: 'Guest User (Sandbox)',
-    storeCode: activeObj.code
-  };
-  AppState.activeStore = activeObj;
-  AppState.assets = JSON.parse(JSON.stringify(StorageManager.getAssets(activeObj.code)));
-  AppState.logs = JSON.parse(JSON.stringify(StorageManager.getLogs(activeObj.code)));
-
-  DOM.loginSection.classList.add('hidden');
-  DOM.appSection.classList.remove('hidden');
-
-  loadUserSession();
-  showToast('🚀 Welcome to Guest Sandbox Mode! Test all features — data changes will NOT be saved to the database.', 'info');
-}
-
 function handleLogout() {
   AppState.currentUser = null;
   AppState.activeStore = null;
@@ -910,21 +885,7 @@ function loadUserSession() {
   const sidebarAdminBlock = document.getElementById('sidebarAdminBlock');
 
   // Configure UI based on Role
-  if (savedSession.role === 'guest') {
-    DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono';
-    DOM.roleDisplayName.textContent = 'GUEST • Sandbox Mode';
-    if (DOM.adminManageStoresBtn) DOM.adminManageStoresBtn.classList.remove('hidden');
-    if (DOM.openCreateStoreBtnHeader) DOM.openCreateStoreBtnHeader.classList.remove('hidden');
-    if (DOM.openAddAssetBtn) DOM.openAddAssetBtn.classList.remove('hidden');
-    if (DOM.emptyAddBtn) DOM.emptyAddBtn.classList.remove('hidden');
-    if (sidebarAdminBlock) sidebarAdminBlock.classList.remove('hidden');
-    if (DOM.dropdownUserRole) DOM.dropdownUserRole.textContent = 'Role: Guest (Unsaved Sandbox)';
-    if (DOM.dropdownUserDetail) DOM.dropdownUserDetail.textContent = 'Account: Guest Tester';
-
-    if (!AppState.activeStore && stores.length > 0) {
-      AppState.activeStore = stores[0];
-    }
-  } else if (savedSession.role === 'admin') {
+  if (savedSession.role === 'admin') {
     // Admin Role Configuration
     DOM.roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono';
     DOM.roleDisplayName.textContent = `ADMIN • ${savedSession.username}`;
@@ -979,7 +940,7 @@ function loadUserSession() {
 
 function renderHeaderStoreSelector() {
   const stores = StorageManager.getStores();
-  const isAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
+  const isAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   if (DOM.activeStoreSelect) {
     if (isAdmin) {
@@ -1688,7 +1649,6 @@ function initSupabaseRealtime() {
 }
 
 // Global functions exposed for inline onclick handlers
-window.handleGuestLogin = handleGuestLogin;
 window.openHistoryModal = openHistoryModal;
 window.openEditAssetModal = openEditAssetModal;
 window.confirmDeleteAsset = confirmDeleteAsset;
@@ -1973,7 +1933,7 @@ function renderAssetDirectory() {
 }
 
 function renderTableView(assets) {
-  const isUserAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   DOM.assetTableBody.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
@@ -2040,7 +2000,7 @@ function renderTableView(assets) {
 }
 
 function renderCardView(assets) {
-  const isUserAdmin = AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest');
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   DOM.cardViewContainer.innerHTML = assets.map(asset => {
     const statusBadge = getStatusBadgeHTML(asset);
@@ -2120,6 +2080,17 @@ function updateAssetFormPreview(url) {
   }
 }
 
+function handleCategorySelectChange() {
+  if (!DOM.assetFormCategory || !DOM.assetFormCustomCategory) return;
+  if (DOM.assetFormCategory.value === 'Other') {
+    DOM.assetFormCustomCategory.classList.remove('hidden');
+    DOM.assetFormCustomCategory.focus();
+  } else {
+    DOM.assetFormCustomCategory.classList.add('hidden');
+    DOM.assetFormCustomCategory.value = '';
+  }
+}
+
 function openAddAssetModal() {
   if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
     showToast('Unauthorized: Only Administrators can create assets.', 'error');
@@ -2134,6 +2105,11 @@ function openAddAssetModal() {
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = '';
   if (DOM.assetFormCompletion) DOM.assetFormCompletion.value = 'false';
+  if (DOM.assetFormCategory) DOM.assetFormCategory.value = 'HVAC / Aircon';
+  if (DOM.assetFormCustomCategory) {
+    DOM.assetFormCustomCategory.classList.add('hidden');
+    DOM.assetFormCustomCategory.value = '';
+  }
   updateAssetFormPreview('');
 
   DOM.assetModal.classList.remove('hidden');
@@ -2151,7 +2127,22 @@ function openEditAssetModal(assetId) {
 
   DOM.assetFormId.value = asset.id;
   DOM.assetFormName.value = asset.name;
-  DOM.assetFormCategory.value = asset.category;
+  if (DOM.assetFormCategory) {
+    const predefinedOpts = Array.from(DOM.assetFormCategory.options).map(o => o.value);
+    if (predefinedOpts.includes(asset.category) && asset.category !== 'Other') {
+      DOM.assetFormCategory.value = asset.category;
+      if (DOM.assetFormCustomCategory) {
+        DOM.assetFormCustomCategory.classList.add('hidden');
+        DOM.assetFormCustomCategory.value = '';
+      }
+    } else {
+      DOM.assetFormCategory.value = 'Other';
+      if (DOM.assetFormCustomCategory) {
+        DOM.assetFormCustomCategory.classList.remove('hidden');
+        DOM.assetFormCustomCategory.value = asset.category || '';
+      }
+    }
+  }
   DOM.assetFormSerial.value = asset.serial;
   DOM.assetFormStatus.value = asset.status;
   DOM.assetFormLocation.value = asset.location || '';
@@ -2210,13 +2201,17 @@ function handleAssetFormSubmit(e) {
   // When editing, find the existing asset record to preserve completion fields
   const existingAsset = isEditing ? AppState.assets.find(a => a.id === id) : null;
 
+  const selectedCatOption = DOM.assetFormCategory.value;
+  const customCatText = DOM.assetFormCustomCategory ? DOM.assetFormCustomCategory.value.trim() : '';
+  const finalCategory = (selectedCatOption === 'Other' && customCatText) ? customCatText : selectedCatOption;
+
   const formCompletionVal = DOM.assetFormCompletion ? (DOM.assetFormCompletion.value === 'true') : (existingAsset ? Boolean(existingAsset.isCompleted) : false);
   const finalIsCompleted = (selectedStatus === 'Maintenance Needed' || selectedStatus === 'Out of Service') ? false : formCompletionVal;
 
   const assetData = {
     id: isEditing ? id : `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     name: DOM.assetFormName.value.trim(),
-    category: DOM.assetFormCategory.value,
+    category: finalCategory,
     serial: serialNumber,
     status: selectedStatus,
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
@@ -2551,7 +2546,7 @@ function confirmDeleteAsset(assetId) {
 
 function canUserAddComment(storeCode) {
   if (!AppState.currentUser) return false;
-  if (AppState.currentUser.role === 'admin' || AppState.currentUser.role === 'guest') return true;
+  if (AppState.currentUser.role === 'admin') return true;
   if (AppState.currentUser.role === 'store' && AppState.currentUser.storeCode === storeCode) return true;
   return false;
 }
@@ -3280,8 +3275,7 @@ function closeConfirmModal() {
 // ==========================================
 
 function initEventListeners() {
-  // Guest Login & Tab Switching
-  if (DOM.guestLoginBtn) DOM.guestLoginBtn.addEventListener('click', handleGuestLogin);
+  // Login Tab Switching
   DOM.tabStoreLogin.addEventListener('click', () => switchLoginTab('store'));
   DOM.tabAdminLogin.addEventListener('click', () => switchLoginTab('admin'));
 
@@ -3440,8 +3434,9 @@ function initEventListeners() {
   DOM.closeAssetModalBtn.addEventListener('click', closeAssetModal);
   DOM.cancelAssetModalBtn.addEventListener('click', closeAssetModal);
 
-  // Asset Form Submit
+  // Asset Form Submit & Category Change
   DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
+  if (DOM.assetFormCategory) DOM.assetFormCategory.addEventListener('change', handleCategorySelectChange);
 
   // Confirm modal Cancel / Confirm buttons
   const confirmCancelBtn = document.getElementById('confirmModalCancelBtn');
