@@ -1688,13 +1688,37 @@ function getTaskDueStatus(asset) {
   // ─── RULE 1: Completed overrides EVERYTHING ───────────────────────────────
   // A task is Completed ONLY when isCompleted flag is explicitly set to true on the asset.
   if (asset.isCompleted) {
+    let completedSubtext = 'Task Completed';
+    if (asset.dueDate) {
+      const compDateStr = asset.completedDate || asset.lastMaintenance || new Date().toISOString().split('T')[0];
+      const dueParts = asset.dueDate.split('-');
+      const compParts = compDateStr.split('-');
+
+      const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
+      const comp = new Date(parseInt(compParts[0], 10), parseInt(compParts[1], 10) - 1, parseInt(compParts[2], 10));
+      due.setHours(0, 0, 0, 0);
+      comp.setHours(0, 0, 0, 0);
+
+      const diffTime = comp.getTime() - due.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 0) {
+        completedSubtext = `Completed (${diffDays} day${diffDays === 1 ? '' : 's'} after due date)`;
+      } else if (diffDays < 0) {
+        const earlyDays = Math.abs(diffDays);
+        completedSubtext = `Completed (${earlyDays} day${earlyDays === 1 ? '' : 's'} early)`;
+      } else {
+        completedSubtext = `Completed on due date`;
+      }
+    }
+
     return {
       statusKey: 'Completed',
       label: 'Completed',
       icon: '🟢',
       badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
       dotClass: 'bg-emerald-400',
-      daysSubtext: 'Task Completed',
+      daysSubtext: completedSubtext,
       priority: 1
     };
   }
@@ -3046,6 +3070,7 @@ function handleNewLogSubmit(e) {
   // ─── Set isCompleted flag ONLY on the specifically submitted asset ────────
   if (isTaskCompletedByDate) {
     asset.isCompleted = true;
+    asset.completedDate = finalDate;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
   } else {
