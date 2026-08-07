@@ -3045,9 +3045,14 @@ function handleNewLogSubmit(e) {
   const finalTech = DOM.logFormTechnician.value.trim() || (isUserAdmin ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`);
   const finalNotes = (DOM.logFormNotes && DOM.logFormNotes.value.trim()) ? DOM.logFormNotes.value.trim() : (isUserAdmin ? `Status updated to ${newStatus} by Admin.` : 'Task completed and verified.');
 
-  const isTaskCompletedByDate = Boolean(isCompletionMode || finalDate);
+  const isCompletionSubmitted = Boolean(
+    isCompletionMode ||
+    (DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1') ||
+    (serviceDate && asset.dueDate) ||
+    imageUrl
+  );
 
-  const resolvedStatusAfter = isTaskCompletedByDate ? 'Good' : newStatus;
+  const resolvedStatusAfter = isCompletionSubmitted ? 'Good' : newStatus;
 
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -3068,7 +3073,7 @@ function handleNewLogSubmit(e) {
   asset.updatedAt = new Date().toISOString();
 
   // ─── Set isCompleted flag ONLY on the specifically submitted asset ────────
-  if (isTaskCompletedByDate) {
+  if (isCompletionSubmitted) {
     asset.isCompleted = true;
     asset.completedDate = finalDate;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
@@ -3111,35 +3116,14 @@ function handleNewLogSubmit(e) {
   }
 
   DOM.newLogForm.classList.add('hidden');
-  renderTimelineLogs(asset.id);
+  deactivateCompletionMode();
   refreshAppUI();
 
-  DOM.historyModalAssetStatus.className = `px-2.5 py-0.5 rounded-full text-xs font-semibold ${asset.status === 'Good' ? 'badge-good' : asset.status === 'Maintenance Needed' ? 'badge-maintenance' : 'badge-oos'
-    }`;
-  DOM.historyModalAssetStatus.textContent = asset.status;
-
-  // Update History Modal Completion Banner if task was marked complete
-  if (isCompletionMode && DOM.markCompletedBanner) {
-    DOM.markCompletedBanner.classList.remove('hidden');
-    DOM.markCompletedBanner.innerHTML = `
-      <div class="flex items-center gap-3">
-        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-        <div class="flex-1">
-          <p class="text-xs font-bold text-emerald-300">✅ Task Completed</p>
-          <p class="text-[10px] text-zinc-400 mt-0.5">Photo proof of completed work attached below (Click to view &amp; download).</p>
-        </div>
-        ${asset.completedImageUrl ? `<div onclick="openImageLightbox('${escapeHTML(asset.completedImageUrl)}', 'Completion Proof Photo')" class="flex-shrink-0 cursor-pointer group relative" title="Click to view & download">
-          <img src="${asset.completedImageUrl}" alt="Completion proof" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-500/40 group-hover:border-emerald-400 transition-colors">
-          <div class="absolute inset-0 bg-zinc-950/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <i class="fa-solid fa-download text-white text-xs"></i>
-          </div>
-        </div>` : ''}
-      </div>
-    `;
-    deactivateCompletionMode();
+  if (DOM.historyModal && !DOM.historyModal.classList.contains('hidden')) {
+    openHistoryModal(asset.id);
   }
 
-  if (isCompletionMode) {
+  if (isCompletionSubmitted) {
     showToast(`✅ Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
   } else {
     showToast('Comment / Service Log entry recorded & synced!', 'success');
