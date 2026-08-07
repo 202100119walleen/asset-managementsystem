@@ -1947,7 +1947,7 @@ function renderTableView(assets) {
     ` : '';
 
     const dueStatusForBtn = getTaskDueStatus(asset);
-    const quickCompleteBtn = (dueStatusForBtn.statusKey !== 'Completed' && asset.dueDate) ? `
+    const quickCompleteBtn = (!isUserAdmin && dueStatusForBtn.statusKey !== 'Completed' && asset.dueDate) ? `
       <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Mark Task as Completed — requires photo proof">
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
@@ -2014,7 +2014,7 @@ function renderCardView(assets) {
     ` : '';
 
     const dueStatusForCardBtn = getTaskDueStatus(asset);
-    const quickCompleteBtn = (dueStatusForCardBtn.statusKey !== 'Completed' && asset.dueDate) ? `
+    const quickCompleteBtn = (!isUserAdmin && dueStatusForCardBtn.statusKey !== 'Completed' && asset.dueDate) ? `
       <button onclick="markTaskCompleted('${asset.id}')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Mark Task as Completed — requires photo proof">
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
@@ -2632,8 +2632,10 @@ async function openHistoryModal(assetId) {
 
   // Show / hide Mark as Completed quick action banner
   const dueStatusModal = getTaskDueStatus(asset);
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
+
   if (DOM.markCompletedBanner) {
-    if (dueStatusModal.statusKey !== 'Completed' && asset.dueDate) {
+    if (!isUserAdmin && dueStatusModal.statusKey !== 'Completed' && asset.dueDate) {
       DOM.markCompletedBanner.classList.remove('hidden');
       DOM.markCompletedBanner.innerHTML = `
         <div class="flex items-center gap-3">
@@ -2648,7 +2650,6 @@ async function openHistoryModal(assetId) {
         </div>
       `;
     } else if (dueStatusModal.statusKey === 'Completed') {
-      const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
       DOM.markCompletedBanner.classList.remove('hidden');
       DOM.markCompletedBanner.innerHTML = `
         <div class="flex items-center gap-3">
@@ -2672,7 +2673,7 @@ async function openHistoryModal(assetId) {
           ` : ''}
         </div>
       `;
-    } else if (dueStatusModal.statusKey !== 'Completed' && !asset.dueDate) {
+    } else if (!isUserAdmin && dueStatusModal.statusKey !== 'Completed' && !asset.dueDate) {
       DOM.markCompletedBanner.classList.remove('hidden');
       DOM.markCompletedBanner.innerHTML = `
         <div class="flex items-center gap-3">
