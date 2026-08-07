@@ -2527,9 +2527,14 @@ function toggleNewLogForm(e) {
     return;
   }
   if (DOM.newLogForm) {
-    DOM.newLogForm.classList.toggle('hidden');
-    if (!DOM.newLogForm.classList.contains('hidden') && DOM.logFormNotes) {
-      DOM.logFormNotes.focus();
+    const isHidden = DOM.newLogForm.classList.contains('hidden');
+    if (isHidden) {
+      DOM.newLogForm.classList.remove('hidden');
+      deactivateCompletionMode();
+      if (DOM.logFormNotes) DOM.logFormNotes.focus();
+    } else {
+      DOM.newLogForm.classList.add('hidden');
+      deactivateCompletionMode();
     }
   }
 }
@@ -2901,18 +2906,16 @@ function handleNewLogSubmit(e) {
   asset.updatedAt = new Date().toISOString();
 
   // ─── Set isCompleted flag based on conditions ─────────────────────────────
-  const isGoodCondition = newStatus === 'Good';
-  const wasCompletedInForm = isCompletionMode || isGoodCondition;
-
-  if (wasCompletedInForm) {
-    // Conditions fully met — officially Completed!
+  if (isCompletionMode) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
   } else {
-    // Any non-Good status resets completion
-    asset.isCompleted = false;
-    asset.completedImageUrl = '';
+    asset.status = newStatus;
+    if (newStatus === 'Maintenance Needed' || newStatus === 'Out of Service') {
+      asset.isCompleted = false;
+      asset.completedImageUrl = '';
+    }
   }
 
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
@@ -3360,13 +3363,6 @@ function initEventListeners() {
 
   // Maintenance History Modal Actions
   DOM.closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-  DOM.toggleNewLogFormBtn.addEventListener('click', () => {
-    DOM.newLogForm.classList.toggle('hidden');
-    // Deactivate completion mode if manually toggled
-    if (DOM.newLogForm.classList.contains('hidden')) {
-      deactivateCompletionMode();
-    }
-  });
   DOM.cancelLogFormBtn.addEventListener('click', () => {
     DOM.newLogForm.classList.add('hidden');
     deactivateCompletionMode();
