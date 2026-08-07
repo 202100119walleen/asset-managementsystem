@@ -1777,15 +1777,24 @@ function getTaskDueStatus(asset) {
     };
   }
 
-  // Priority 4: Due Soon (1–7 days)
-  if (diffDays <= 7) {
+  // Priority 4: Due Soon (Custom threshold based on Maintenance Frequency: 1 Month / 30 days for Quarterly, Bi-Annually, Annually)
+  let reminderThresholdDays = 7;
+  if (asset.frequency === 'Quarterly' || asset.frequency === 'Bi-Annually' || asset.frequency === 'Annually' || asset.frequency === 'Yearly') {
+    reminderThresholdDays = 30; // 1 Month advance reminder window!
+  } else if (asset.frequency === 'Bi-Monthly') {
+    reminderThresholdDays = 15;
+  }
+
+  if (diffDays <= reminderThresholdDays) {
+    const isOneMonthNotice = diffDays > 7 && diffDays <= 30;
+    const subtextNotice = isOneMonthNotice ? ` (1 Month Reminder)` : ` remaining`;
     return {
       statusKey: 'Due Soon',
       label: 'Due Soon',
       icon: '🟡',
       badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
       dotClass: 'bg-amber-400',
-      daysSubtext: `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`,
+      daysSubtext: `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}${subtextNotice}`,
       priority: 4
     };
   }
@@ -1859,6 +1868,45 @@ function renderDashboardStats() {
   if (DOM.countTabDueToday) DOM.countTabDueToday.textContent = dueTodayAssets.length;
   if (DOM.countTabDueSoon) DOM.countTabDueSoon.textContent = dueSoonAssets.length;
   if (DOM.countTabScheduled) DOM.countTabScheduled.textContent = scheduledAssets.length;
+
+  checkAndGenerateDueNotifications();
+}
+
+function checkAndGenerateDueNotifications() {
+  if (!AppState.assets || AppState.assets.length === 0) return;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const existingNotifs = StorageManager.getNotifications();
+
+  AppState.assets.forEach(asset => {
+    if (!asset.dueDate || asset.isCompleted) return;
+
+    const dueParts = asset.dueDate.split('-');
+    const due = new Date(parseInt(dueParts[0], 10), parseInt(dueParts[1], 10) - 1, parseInt(dueParts[2], 10));
+    due.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const isQuarterlyOrHigher = asset.frequency === 'Quarterly' || asset.frequency === 'Bi-Annually' || asset.frequency === 'Annually' || asset.frequency === 'Yearly';
+
+    if (isQuarterlyOrHigher && diffDays <= 30 && diffDays > 0) {
+      const notifTag = `1MONTH_REMINDER_${asset.id}_${asset.dueDate}`;
+      const alreadyNotified = existingNotifs.some(n => n.notifTag === notifTag || (n.assetId === asset.id && n.title.includes('1-Month Maintenance Reminder')));
+
+      if (!alreadyNotified) {
+        StorageManager.addNotification({
+          recipientRole: 'store',
+          recipientStoreCode: AppState.activeStore ? AppState.activeStore.code : null,
+          title: '⏰ 1-Month Maintenance Reminder',
+          message: `Upcoming 3-month scheduled maintenance on "${asset.name}" is due in ${diffDays} days (${asset.dueDate}). Please prepare for service.`,
+          assetId: asset.id,
+          storeCode: AppState.activeStore ? AppState.activeStore.code : null,
+          type: 'info',
+          notifTag: notifTag
+        });
+      }
+    }
+  });
 }
 
 function getFilteredAssets() {
