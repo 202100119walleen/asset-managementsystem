@@ -3048,8 +3048,7 @@ function handleNewLogSubmit(e) {
   const isCompletionSubmitted = Boolean(
     isCompletionMode ||
     (DOM.logFormCompletionMode && DOM.logFormCompletionMode.value === '1') ||
-    (serviceDate && asset.dueDate) ||
-    imageUrl
+    Boolean(serviceDate)
   );
 
   const resolvedStatusAfter = isCompletionSubmitted ? 'Good' : newStatus;
