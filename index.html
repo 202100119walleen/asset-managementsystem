@@ -829,7 +829,7 @@
           </select>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5"
               for="assetFormLastMaint">
@@ -840,9 +840,25 @@
           </div>
 
           <div>
+            <label class="block text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1.5"
+              for="assetFormFrequency">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i> Maintenance Frequency
+            </label>
+            <select id="assetFormFrequency"
+              class="w-full px-3.5 py-2.5 bg-zinc-950 border border-cyan-500/30 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 cursor-pointer">
+              <option value="None">None (One-time / Manual)</option>
+              <option value="Monthly">Monthly (Every 1 Month)</option>
+              <option value="Bi-Monthly">Bi-Monthly (Every 2 Months)</option>
+              <option value="Quarterly">Quarterly (Every 3 Months)</option>
+              <option value="Bi-Annually">Bi-Annually (Every 6 Months)</option>
+              <option value="Annually">Annually (Every 12 Months)</option>
+            </select>
+          </div>
+
+          <div>
             <label class="block text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1.5"
               for="assetFormDueDate">
-              <i class="fa-solid fa-calendar-check mr-1"></i> Due Date (Admin Assigned)
+              <i class="fa-solid fa-calendar-check mr-1"></i> Due Date (Auto / Admin Assigned)
             </label>
             <input type="date" id="assetFormDueDate" onclick="this.showPicker && this.showPicker()"
               class="w-full px-3.5 py-2.5 bg-zinc-950 border border-amber-500/30 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500 font-mono cursor-pointer">

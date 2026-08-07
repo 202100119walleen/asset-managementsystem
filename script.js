@@ -670,6 +670,7 @@ const DOM = {
   assetFormCompletion: document.getElementById('assetFormCompletion'),
   assetFormLocation: document.getElementById('assetFormLocation'),
   assetFormLastMaint: document.getElementById('assetFormLastMaint'),
+  assetFormFrequency: document.getElementById('assetFormFrequency'),
   assetFormDueDate: document.getElementById('assetFormDueDate'),
   assetFormValue: document.getElementById('assetFormValue'),
   assetFormFileInput: document.getElementById('assetFormFileInput'),
@@ -2080,6 +2081,38 @@ function updateAssetFormPreview(url) {
   }
 }
 
+function calculateNextDueDate(baseDateStr, frequency) {
+  if (!frequency || frequency === 'None') return '';
+  const baseDate = baseDateStr ? new Date(baseDateStr) : new Date();
+  if (isNaN(baseDate.getTime())) return '';
+
+  let monthsToAdd = 0;
+  if (frequency === 'Monthly') monthsToAdd = 1;
+  else if (frequency === 'Bi-Monthly') monthsToAdd = 2;
+  else if (frequency === 'Quarterly') monthsToAdd = 3;
+  else if (frequency === 'Bi-Annually') monthsToAdd = 6;
+  else if (frequency === 'Annually' || frequency === 'Yearly') monthsToAdd = 12;
+
+  if (monthsToAdd > 0) {
+    baseDate.setMonth(baseDate.getMonth() + monthsToAdd);
+    const yyyy = baseDate.getFullYear();
+    const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(baseDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return '';
+}
+
+function handleFrequencyChange() {
+  if (!DOM.assetFormFrequency || !DOM.assetFormDueDate) return;
+  const freq = DOM.assetFormFrequency.value;
+  if (freq && freq !== 'None') {
+    const base = DOM.assetFormLastMaint && DOM.assetFormLastMaint.value ? DOM.assetFormLastMaint.value : new Date().toISOString().split('T')[0];
+    const autoDue = calculateNextDueDate(base, freq);
+    if (autoDue) DOM.assetFormDueDate.value = autoDue;
+  }
+}
+
 function handleCategorySelectChange() {
   if (!DOM.assetFormCategory || !DOM.assetFormCustomCategory) return;
   if (DOM.assetFormCategory.value === 'Other') {
@@ -2104,6 +2137,7 @@ function openAddAssetModal() {
   DOM.assetModalTitle.textContent = 'Add New Asset';
   DOM.assetFormLastMaint.value = new Date().toISOString().split('T')[0];
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = '';
+  if (DOM.assetFormFrequency) DOM.assetFormFrequency.value = 'None';
   if (DOM.assetFormCompletion) DOM.assetFormCompletion.value = 'false';
   if (DOM.assetFormCategory) DOM.assetFormCategory.value = 'HVAC / Aircon';
   if (DOM.assetFormCustomCategory) {
@@ -2147,6 +2181,7 @@ function openEditAssetModal(assetId) {
   DOM.assetFormStatus.value = asset.status;
   DOM.assetFormLocation.value = asset.location || '';
   DOM.assetFormLastMaint.value = asset.lastMaintenance || '';
+  if (DOM.assetFormFrequency) DOM.assetFormFrequency.value = asset.frequency || 'None';
   if (DOM.assetFormDueDate) DOM.assetFormDueDate.value = asset.dueDate || '';
   if (DOM.assetFormCompletion) DOM.assetFormCompletion.value = asset.isCompleted ? 'true' : 'false';
   DOM.assetFormValue.value = asset.value || '';
@@ -2205,6 +2240,12 @@ function handleAssetFormSubmit(e) {
   const customCatText = DOM.assetFormCustomCategory ? DOM.assetFormCustomCategory.value.trim() : '';
   const finalCategory = (selectedCatOption === 'Other' && customCatText) ? customCatText : selectedCatOption;
 
+  const frequencyVal = DOM.assetFormFrequency ? DOM.assetFormFrequency.value : 'None';
+  let finalAssignedDueDate = assignedDueDate;
+  if (!finalAssignedDueDate && frequencyVal && frequencyVal !== 'None') {
+    finalAssignedDueDate = calculateNextDueDate(DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0], frequencyVal);
+  }
+
   const formCompletionVal = DOM.assetFormCompletion ? (DOM.assetFormCompletion.value === 'true') : (existingAsset ? Boolean(existingAsset.isCompleted) : false);
   const finalIsCompleted = (selectedStatus === 'Maintenance Needed' || selectedStatus === 'Out of Service') ? false : formCompletionVal;
 
@@ -2216,7 +2257,8 @@ function handleAssetFormSubmit(e) {
     status: selectedStatus,
     location: DOM.assetFormLocation.value.trim() || 'Main Area',
     lastMaintenance: DOM.assetFormLastMaint.value || new Date().toISOString().split('T')[0],
-    dueDate: assignedDueDate,
+    frequency: frequencyVal,
+    dueDate: finalAssignedDueDate,
     value: parseFloat(DOM.assetFormValue.value) || 0,
     imageUrl: DOM.assetFormImage.value.trim(),
     isCompleted: finalIsCompleted,
@@ -2958,6 +3000,12 @@ function handleNewLogSubmit(e) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
+
+    // Auto-calculate Next Due Date if Maintenance Frequency is assigned
+    if (asset.frequency && asset.frequency !== 'None') {
+      const nextDue = calculateNextDueDate(finalDate, asset.frequency);
+      if (nextDue) asset.dueDate = nextDue;
+    }
   } else {
     asset.status = newStatus;
     if (newStatus === 'Maintenance Needed' || newStatus === 'Out of Service') {
@@ -3434,9 +3482,10 @@ function initEventListeners() {
   DOM.closeAssetModalBtn.addEventListener('click', closeAssetModal);
   DOM.cancelAssetModalBtn.addEventListener('click', closeAssetModal);
 
-  // Asset Form Submit & Category Change
+  // Asset Form Submit & Field Changes
   DOM.assetForm.addEventListener('submit', handleAssetFormSubmit);
   if (DOM.assetFormCategory) DOM.assetFormCategory.addEventListener('change', handleCategorySelectChange);
+  if (DOM.assetFormFrequency) DOM.assetFormFrequency.addEventListener('change', handleFrequencyChange);
 
   // Confirm modal Cancel / Confirm buttons
   const confirmCancelBtn = document.getElementById('confirmModalCancelBtn');
