@@ -1657,6 +1657,9 @@ window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 window.markTaskCompleted = markTaskCompleted;
 window.markTaskIncomplete = markTaskIncomplete;
 window.replyToComment = replyToComment;
+window.deleteCommentWithUndo = deleteCommentWithUndo;
+window.undoDeleteComment = undoDeleteComment;
+window.handleUndoClick = handleUndoClick;
 window.handleNotificationClick = handleNotificationClick;
 
 // Bootstrap Application
@@ -2739,6 +2742,7 @@ function replyToComment(author) {
 
 function renderTimelineLogs(assetId) {
   const logs = AppState.logs.filter(l => l.assetId === assetId).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const isUserAdmin = AppState.currentUser && AppState.currentUser.role === 'admin';
 
   if (logs.length === 0) {
     DOM.timelineContainer.innerHTML = '';
@@ -2797,9 +2801,16 @@ function renderTimelineLogs(assetId) {
               ${roleBadge}
             </div>
 
-            <button type="button" onclick="replyToComment('${escapeHTML(log.technician || '')}')" class="text-[11px] text-zinc-400 hover:text-amber-400 transition-colors flex items-center gap-1 font-medium">
-              <i class="fa-solid fa-reply text-[9px]"></i> Reply
-            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="replyToComment('${escapeHTML(log.technician || '')}')" class="text-[11px] text-zinc-400 hover:text-amber-400 transition-colors flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-reply text-[9px]"></i> Reply
+              </button>
+              ${isUserAdmin ? `
+                <button type="button" onclick="deleteCommentWithUndo('${escapeHTML(log.id)}')" class="text-[11px] text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 font-medium ml-1" title="Delete Comment (Admin only)">
+                  <i class="fa-solid fa-trash text-[9px]"></i> Delete
+                </button>
+              ` : ''}
+            </div>
           </div>
 
           <div class="text-xs text-zinc-300 bg-zinc-900 p-2.5 rounded-lg border border-zinc-800 mt-2 whitespace-pre-line leading-relaxed">
@@ -2982,6 +2993,102 @@ function handleNewLogSubmit(e) {
   } else {
     showToast('Comment / Service Log entry recorded & synced!', 'success');
   }
+}
+
+const pendingDeletedLogs = {};
+
+function deleteCommentWithUndo(logId) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Administrators can delete comments.', 'error');
+    return;
+  }
+
+  const logIdx = AppState.logs.findIndex(l => l.id === logId);
+  if (logIdx === -1) return;
+
+  const targetLog = AppState.logs[logIdx];
+  const assetId = targetLog.assetId;
+
+  // Temporarily remove from active logs array so UI updates immediately
+  AppState.logs.splice(logIdx, 1);
+  renderTimelineLogs(assetId);
+
+  // Schedule permanent deletion after 10 seconds
+  const timeoutId = setTimeout(() => {
+    delete pendingDeletedLogs[logId];
+    StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
+    if (supabaseClient) {
+      supabaseClient.from('maintenance_logs').delete().eq('id', logId).catch(err => console.log('Log delete note:', err));
+    }
+  }, 10000);
+
+  pendingDeletedLogs[logId] = {
+    log: targetLog,
+    originalIndex: logIdx,
+    timeoutId: timeoutId
+  };
+
+  showUndoToast('Comment deleted.', logId);
+}
+
+function undoDeleteComment(logId) {
+  const pending = pendingDeletedLogs[logId];
+  if (!pending) return;
+
+  // Cancel 10s permanent deletion timer
+  clearTimeout(pending.timeoutId);
+
+  // Restore log back into active logs array
+  AppState.logs.splice(pending.originalIndex, 0, pending.log);
+  delete pendingDeletedLogs[logId];
+
+  // Refresh timeline UI
+  renderTimelineLogs(pending.log.assetId);
+  showToast('Deletion cancelled. Comment restored.', 'success');
+}
+
+function showUndoToast(message, logId) {
+  const toast = document.createElement('div');
+  toast.id = `undoToast_${logId}`;
+  toast.className = 'toast-item pointer-events-auto bg-zinc-900 border border-amber-500/40 text-zinc-100 px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between gap-3 text-xs min-w-[280px]';
+
+  toast.innerHTML = `
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-trash-can text-rose-400 text-sm"></i>
+      <span>${escapeHTML(message)} <strong class="text-amber-400 font-mono" id="undoTimer_${logId}">(10s)</strong></span>
+    </div>
+    <button type="button" onclick="handleUndoClick('${escapeHTML(logId)}')" class="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold rounded-lg text-xs transition-all shadow-sm flex items-center gap-1.5">
+      <i class="fa-solid fa-rotate-left text-[10px]"></i> Undo
+    </button>
+  `;
+
+  DOM.toastContainer.appendChild(toast);
+
+  let secondsLeft = 10;
+  const intervalId = setInterval(() => {
+    secondsLeft--;
+    const timerEl = document.getElementById(`undoTimer_${logId}`);
+    if (timerEl) timerEl.textContent = `(${secondsLeft}s)`;
+    if (secondsLeft <= 0) {
+      clearInterval(intervalId);
+    }
+  }, 1000);
+
+  setTimeout(() => {
+    clearInterval(intervalId);
+    if (toast.parentNode) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(16px)';
+      toast.style.transition = 'all 0.25s ease';
+      setTimeout(() => toast.remove(), 250);
+    }
+  }, 10000);
+}
+
+function handleUndoClick(logId) {
+  const toastEl = document.getElementById(`undoToast_${logId}`);
+  if (toastEl) toastEl.remove();
+  undoDeleteComment(logId);
 }
 
 
