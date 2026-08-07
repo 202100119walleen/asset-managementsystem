@@ -1679,6 +1679,7 @@ window.confirmDeleteStore = confirmDeleteStore;
 window.toggleStorePasswordVisibility = toggleStorePasswordVisibility;
 window.markTaskCompleted = markTaskCompleted;
 window.markTaskIncomplete = markTaskIncomplete;
+window.toggleAssetCompletion = toggleAssetCompletion;
 window.replyToComment = replyToComment;
 window.deleteCommentWithUndo = deleteCommentWithUndo;
 window.undoDeleteComment = undoDeleteComment;
@@ -2055,6 +2056,16 @@ function renderTableView(assets) {
       </button>
     ` : '';
 
+    const adminToggleCompleteBtn = isUserAdmin ? (
+      dueStatusForBtn.statusKey === 'Completed'
+        ? `<button onclick="toggleAssetCompletion('${asset.id}', false)" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Unmark as Completed">
+            <i class="fa-solid fa-rotate-left text-[9px]"></i> Unmark
+          </button>`
+        : `<button onclick="toggleAssetCompletion('${asset.id}', true)" class="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-md transition-colors flex items-center gap-1" title="Mark as Completed">
+            <i class="fa-solid fa-check text-[9px]"></i> Complete
+          </button>`
+    ) : '';
+
     const dueDateDisplay = asset.dueDate ? `<span class="text-amber-400/90 font-medium">${asset.dueDate}</span>` : '<span class="text-zinc-600">None</span>';
 
     const frequencyBadge = (!isUserAdmin && asset.frequency && asset.frequency !== 'None')
@@ -2093,6 +2104,7 @@ function renderTableView(assets) {
         <td class="py-3.5 px-4 text-right">
           <div class="flex items-center justify-end gap-1.5 flex-wrap">
             ${quickCompleteBtn}
+            ${adminToggleCompleteBtn}
             <button onclick="openHistoryModal('${asset.id}')" class="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1 font-medium text-xs" title="View History & Service Logs">
               <i class="fa-solid fa-comments text-xs"></i> Logs
             </button>
@@ -2128,6 +2140,16 @@ function renderCardView(assets) {
         <i class="fa-solid fa-check text-[9px]"></i> Complete
       </button>
     ` : '';
+
+    const adminToggleCompleteBtnCard = isUserAdmin ? (
+      dueStatusForCardBtn.statusKey === 'Completed'
+        ? `<button onclick="toggleAssetCompletion('${asset.id}', false)" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Unmark as Completed">
+            <i class="fa-solid fa-rotate-left text-[9px]"></i> Unmark
+          </button>`
+        : `<button onclick="toggleAssetCompletion('${asset.id}', true)" class="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1" title="Mark as Completed">
+            <i class="fa-solid fa-check text-[9px]"></i> Complete
+          </button>`
+    ) : '';
 
     const frequencyBadgeCard = (!isUserAdmin && asset.frequency && asset.frequency !== 'None')
       ? `<span class="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20">
@@ -2168,6 +2190,7 @@ function renderCardView(assets) {
 
             <div class="flex items-center gap-1">
               ${quickCompleteBtn}
+              ${adminToggleCompleteBtnCard}
               <button onclick="openHistoryModal('${asset.id}')" class="px-2.5 py-1.5 bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5">
                 <i class="fa-solid fa-comments text-[10px]"></i> History
               </button>
@@ -2651,6 +2674,61 @@ function markTaskIncomplete(assetId) {
   }
 
   showToast(`Task for "${asset.name}" marked as NOT COMPLETED.`, 'info');
+}
+
+function toggleAssetCompletion(assetId, markAsComplete) {
+  if (!AppState.currentUser || AppState.currentUser.role !== 'admin') {
+    showToast('Unauthorized: Only Admin accounts can change completion status.', 'error');
+    return;
+  }
+
+  const asset = AppState.assets.find(a => a.id === assetId);
+  if (!asset) return;
+
+  if (markAsComplete) {
+    asset.isCompleted = true;
+    asset.completedDate = asset.completedDate || new Date().toISOString().split('T')[0];
+    asset.status = 'Good';
+    asset.updatedAt = new Date().toISOString();
+
+    StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
+
+    if (supabaseClient) {
+      supabaseClient.from('assets').upsert([{
+        id: asset.id,
+        store_code: AppState.activeStore.code,
+        name: asset.name,
+        category: asset.category,
+        serial: asset.serial,
+        status: 'Good',
+        location: asset.location || '',
+        last_maintenance: asset.lastMaintenance || '',
+        due_date: asset.dueDate || null,
+        frequency: asset.frequency || 'None',
+        value: asset.value || 0,
+        image_url: asset.imageUrl || '',
+        is_completed: true,
+        completed_date: asset.completedDate,
+        completed_image_url: asset.completedImageUrl || '',
+        updated_at: asset.updatedAt
+      }]).catch(err => console.log('Asset toggle complete sync note:', err));
+    }
+
+    StorageManager.addNotification({
+      recipientRole: 'store',
+      recipientStoreCode: AppState.activeStore.code,
+      title: '✅ Task Marked as Completed by Admin',
+      message: `Admin ${AppState.currentUser.username} marked "${asset.name}" as COMPLETED.`,
+      assetId: asset.id,
+      storeCode: AppState.activeStore.code,
+      type: 'status'
+    });
+
+    showToast(`"${asset.name}" marked as ✅ COMPLETED.`, 'success');
+    refreshAppUI();
+  } else {
+    markTaskIncomplete(assetId);
+  }
 }
 
 function confirmDeleteAsset(assetId) {
