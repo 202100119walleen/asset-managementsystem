@@ -2700,10 +2700,11 @@ function updateAssetFormPreview(url) {
 }
 
 function configureLogFormDateBounds(asset) {
-  if (!DOM.logFormDate || !asset) return;
+  if (!DOM.logFormDate) return;
   DOM.logFormDate.removeAttribute('min');
   DOM.logFormDate.removeAttribute('max');
-  DOM.logFormDate.value = asset.dueDate || new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  DOM.logFormDate.value = todayStr;
 }
 
 async function openHistoryModal(assetId) {
