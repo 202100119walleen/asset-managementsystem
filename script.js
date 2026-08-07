@@ -2976,13 +2976,19 @@ function handleNewLogSubmit(e) {
   const finalTech = DOM.logFormTechnician.value.trim() || (isUserAdmin ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`);
   const finalNotes = (DOM.logFormNotes && DOM.logFormNotes.value.trim()) ? DOM.logFormNotes.value.trim() : (isUserAdmin ? `Status updated to ${newStatus} by Admin.` : 'Task completed and verified.');
 
+  const isTaskCompletedByDate = Boolean(
+    isCompletionMode || (finalDate && asset.dueDate && (new Date(finalDate) >= new Date(asset.dueDate)))
+  );
+
+  const resolvedStatusAfter = isTaskCompletedByDate ? 'Good' : newStatus;
+
   const logEntry = {
     id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
     assetId: asset.id,
     date: finalDate,
     technician: finalTech,
     statusBefore: asset.status,
-    statusAfter: newStatus,
+    statusAfter: resolvedStatusAfter,
     cost: parseFloat(DOM.logFormCost.value) || 0,
     imageUrl: imageUrl,
     notes: finalNotes
@@ -2991,12 +2997,11 @@ function handleNewLogSubmit(e) {
   AppState.logs.unshift(logEntry);
   StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
 
-  asset.status = newStatus;
-  asset.lastMaintenance = serviceDate || new Date().toISOString().split('T')[0];
+  asset.lastMaintenance = finalDate;
   asset.updatedAt = new Date().toISOString();
 
-  // ─── Set isCompleted flag ONLY on the specifically selected asset ────────
-  if (isCompletionMode) {
+  // ─── Set isCompleted flag ONLY on the specifically submitted asset ────────
+  if (isTaskCompletedByDate) {
     asset.isCompleted = true;
     asset.completedImageUrl = imageUrl || asset.completedImageUrl || asset.imageUrl || '';
     asset.status = 'Good';
