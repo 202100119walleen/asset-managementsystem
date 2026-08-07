@@ -172,16 +172,35 @@ class StorageManager {
             location: a.location,
             lastMaintenance: a.last_maintenance,
             dueDate: a.due_date || '',
+            frequency: a.frequency || 'None',
             value: parseFloat(a.value) || 0,
             imageUrl: a.image_url,
             isCompleted: Boolean(a.is_completed),
+            completedDate: a.completed_date || '',
             completedImageUrl: a.completed_image_url || '',
             updatedAt: a.updated_at
           }));
 
           const localAssets = StorageManager.getAssets(currentActiveCode);
-          const mergedAssets = [...mappedRemote];
+          const mergedAssets = mappedRemote.map(remote => {
+            const local = localAssets.find(l => l.id === remote.id);
+            if (local) {
+              // If local copy is completed but remote isn't yet (Supabase upsert may be in-flight),
+              // keep the locally-completed state so it doesn't flicker back to non-completed.
+              const preferLocal = local.isCompleted && !remote.isCompleted;
+              return {
+                ...remote,
+                isCompleted: preferLocal ? true : remote.isCompleted,
+                completedDate: preferLocal ? (local.completedDate || remote.completedDate) : remote.completedDate,
+                status: preferLocal ? 'Good' : remote.status,
+                completedImageUrl: preferLocal ? (local.completedImageUrl || remote.completedImageUrl) : remote.completedImageUrl,
+                frequency: local.frequency || remote.frequency || 'None'
+              };
+            }
+            return remote;
+          });
 
+          // Add any local-only assets not yet pushed to Supabase
           localAssets.forEach(local => {
             if (!mergedAssets.some(m => m.id === local.id)) {
               mergedAssets.push(local);
