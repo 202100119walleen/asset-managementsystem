@@ -255,23 +255,17 @@ class StorageManager {
             notes: l.notes
           }));
 
-          // Use Supabase remote as source of truth:
-          // Only append local-only logs that haven't yet been pushed to Supabase.
-          // This ensures admin-deleted logs don't reappear from stale localStorage.
-          const remoteIds = new Set(mappedLogs.map(m => m.id));
           const localLogs = StorageManager.getLogs(activeCode);
-          const pendingLocalOnly = localLogs.filter(local => !remoteIds.has(local.id));
-          const mergedLogs = [...mappedLogs, ...pendingLocalOnly];
+          const mergedLogs = [...mappedLogs];
+          localLogs.forEach(local => {
+            if (!mergedLogs.some(m => m.id === local.id)) {
+              mergedLogs.push(local);
+            }
+          });
 
           StorageManager.saveLogs(activeCode, mergedLogs, false);
           if (AppState.activeStore && AppState.activeStore.code === activeCode) {
             AppState.logs = mergedLogs;
-          }
-        } else if (!logsErr && remoteLogs && remoteLogs.length === 0) {
-          // All logs deleted remotely — clear local too
-          StorageManager.saveLogs(activeCode, [], false);
-          if (AppState.activeStore && AppState.activeStore.code === activeCode) {
-            AppState.logs = [];
           }
         }
       }
@@ -451,11 +445,9 @@ class StorageManager {
         location: a.location || '',
         last_maintenance: a.lastMaintenance || '',
         due_date: a.dueDate || null,
-        frequency: a.frequency || 'None',
         value: a.value || 0,
         image_url: a.imageUrl || '',
         is_completed: a.isCompleted ? true : false,
-        completed_date: a.completedDate || null,
         completed_image_url: a.completedImageUrl || '',
         updated_at: a.updatedAt || new Date().toISOString()
       }));
@@ -3210,6 +3202,25 @@ function handleNewLogSubmit(e) {
 
   StorageManager.saveAssets(AppState.activeStore.code, AppState.assets);
 
+  // ─── Dedicated Supabase update for completion to guarantee is_completed persists ──
+  // The bulk upsert in saveAssets may fail if schema columns differ;
+  // this targeted update uses only core columns guaranteed to exist.
+  if (isCompletionSubmitted && supabaseClient) {
+    supabaseClient.from('assets')
+      .update({
+        is_completed: true,
+        status: 'Good',
+        last_maintenance: asset.lastMaintenance || '',
+        completed_image_url: asset.completedImageUrl || '',
+        updated_at: asset.updatedAt
+      })
+      .eq('id', asset.id)
+      .then(({ error }) => {
+        if (error) console.log('Completion sync note:', error.message);
+      })
+      .catch(err => console.log('Completion sync note:', err));
+  }
+
   // Trigger Notification for target role
   if (AppState.currentUser.role === 'admin') {
     StorageManager.addNotification({
@@ -3270,15 +3281,9 @@ function deleteCommentWithUndo(logId) {
   // Schedule permanent deletion after 10 seconds
   const timeoutId = setTimeout(() => {
     delete pendingDeletedLogs[logId];
-    // Remove from localStorage immediately so employee sync doesn't re-add it
     StorageManager.saveLogs(AppState.activeStore.code, AppState.logs);
     if (supabaseClient) {
-      supabaseClient.from('maintenance_logs').delete().eq('id', logId)
-        .then(() => {
-          // After Supabase confirms delete, re-save localStorage to ensure it's clean
-          StorageManager.saveLogs(AppState.activeStore.code, AppState.logs, false);
-        })
-        .catch(err => console.log('Log delete note:', err));
+      supabaseClient.from('maintenance_logs').delete().eq('id', logId).catch(err => console.log('Log delete note:', err));
     }
   }, 10000);
 
