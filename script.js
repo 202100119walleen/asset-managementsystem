@@ -2701,23 +2701,9 @@ function updateAssetFormPreview(url) {
 
 function configureLogFormDateBounds(asset) {
   if (!DOM.logFormDate || !asset) return;
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  let minDate = asset.lastMaintenance || todayStr;
-  let maxDate = asset.dueDate || todayStr;
-
-  if (asset.dueDate && minDate > asset.dueDate) {
-    minDate = asset.dueDate;
-  }
-
-  DOM.logFormDate.setAttribute('min', minDate);
-  if (asset.dueDate) {
-    DOM.logFormDate.setAttribute('max', asset.dueDate);
-    DOM.logFormDate.value = asset.dueDate;
-  } else {
-    DOM.logFormDate.removeAttribute('max');
-    DOM.logFormDate.value = todayStr;
-  }
+  DOM.logFormDate.removeAttribute('min');
+  DOM.logFormDate.removeAttribute('max');
+  DOM.logFormDate.value = asset.dueDate || new Date().toISOString().split('T')[0];
 }
 
 async function openHistoryModal(assetId) {
@@ -3034,19 +3020,7 @@ function handleNewLogSubmit(e) {
   const finalTech = DOM.logFormTechnician.value.trim() || (isUserAdmin ? `Admin (${AppState.currentUser.username})` : `Store (${AppState.currentUser.storeCode})`);
   const finalNotes = (DOM.logFormNotes && DOM.logFormNotes.value.trim()) ? DOM.logFormNotes.value.trim() : (isUserAdmin ? `Status updated to ${newStatus} by Admin.` : 'Task completed and verified.');
 
-  // Validate date selection for Store/Employee accounts within min and max range if set
-  if (!isUserAdmin && asset.dueDate) {
-    const minDateStr = asset.lastMaintenance || '';
-    if (minDateStr && finalDate < minDateStr) {
-      showToast(`⚠️ Date of Completion cannot be earlier than start date (${minDateStr}).`, 'error');
-      shakeField(DOM.logFormDate);
-      return;
-    }
-  }
-
-  const isTaskCompletedByDate = Boolean(
-    isCompletionMode || (finalDate && asset.dueDate && (new Date(finalDate) <= new Date(asset.dueDate) || new Date(finalDate) >= new Date(asset.lastMaintenance || finalDate)))
-  );
+  const isTaskCompletedByDate = Boolean(isCompletionMode || finalDate);
 
   const resolvedStatusAfter = isTaskCompletedByDate ? 'Good' : newStatus;
 
