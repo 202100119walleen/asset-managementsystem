@@ -2926,25 +2926,25 @@ function handleNewLogSubmit(e) {
     StorageManager.addNotification({
       recipientRole: 'store',
       recipientStoreCode: AppState.activeStore.code,
-      title: wasCompletedInForm ? 'Task Marked as Completed' : 'New Admin Comment / Reply',
-      message: wasCompletedInForm
+      title: isCompletionMode ? 'Task Marked as Completed' : 'New Admin Comment / Reply',
+      message: isCompletionMode
         ? `Admin ${AppState.currentUser.username} marked task on "${asset.name}" as COMPLETED.`
         : `Admin ${AppState.currentUser.username} commented on "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
       assetId: asset.id,
       storeCode: AppState.activeStore.code,
-      type: wasCompletedInForm ? 'status' : 'reply'
+      type: isCompletionMode ? 'status' : 'reply'
     });
   } else {
     StorageManager.addNotification({
       recipientRole: 'admin',
       recipientStoreCode: null,
-      title: wasCompletedInForm ? 'Store Completed Task' : 'New Service Log Submitted',
-      message: wasCompletedInForm
+      title: isCompletionMode ? 'Store Completed Task' : 'New Service Log Submitted',
+      message: isCompletionMode
         ? `Store ${AppState.activeStore.code} completed task on "${asset.name}".`
         : `Store ${AppState.activeStore.code} submitted a log for "${asset.name}": "${logEntry.notes.substring(0, 60)}${logEntry.notes.length > 60 ? '...' : ''}"`,
       assetId: asset.id,
       storeCode: AppState.activeStore.code,
-      type: wasCompletedInForm ? 'status' : 'log'
+      type: isCompletionMode ? 'status' : 'log'
     });
   }
 
@@ -2957,7 +2957,7 @@ function handleNewLogSubmit(e) {
   DOM.historyModalAssetStatus.textContent = asset.status;
 
   // Update History Modal Completion Banner if task was marked complete
-  if (wasCompletedInForm && DOM.markCompletedBanner) {
+  if (isCompletionMode && DOM.markCompletedBanner) {
     DOM.markCompletedBanner.classList.remove('hidden');
     DOM.markCompletedBanner.innerHTML = `
       <div class="flex items-center gap-3">
@@ -2977,7 +2977,7 @@ function handleNewLogSubmit(e) {
     deactivateCompletionMode();
   }
 
-  if (wasCompletedInForm) {
+  if (isCompletionMode) {
     showToast(`✅ Maintenance task for "${asset.name}" marked as COMPLETED!`, 'success');
   } else {
     showToast('Comment / Service Log entry recorded & synced!', 'success');
